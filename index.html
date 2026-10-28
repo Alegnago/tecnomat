@@ -217,7 +217,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
     <section class="group" aria-labelledby="g-base">
       <h2 id="g-base">Base</h2>
       <div class="row"><span>Pallet EPAL</span>
-        <div class="counter"><button id="minus" aria-label="Togli un pallet">−</button><output id="count" aria-live="polite">3</output><button id="plus" aria-label="Aggiungi un pallet">+</button></div>
+        <div class="counter"><button id="minus" aria-label="Togli un pallet">−</button><output id="count" aria-live="polite">2</output><button id="plus" aria-label="Aggiungi un pallet">+</button></div>
       </div>
       <label class="switch">Pannelli 6 mm sui lati lunghi <input type="checkbox" id="panels-on" checked></label>
     </section>
@@ -226,7 +226,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
       <h2 id="g-shelf">Scaffale</h2>
       <label class="switch">Mostra scaffale <input type="checkbox" id="shelf-on" checked></label>
       <div class="row"><span>Altezza</span>
-        <div class="counter"><button id="sh-minus" aria-label="Abbassa lo scaffale di 10 mm">−</button><output id="shelf-h-val" aria-live="polite">800</output><button id="sh-plus" aria-label="Alza lo scaffale di 10 mm">+</button></div>
+        <div class="counter"><button id="sh-minus" aria-label="Abbassa lo scaffale di 10 mm">−</button><output id="shelf-h-val" aria-live="polite">700</output><button id="sh-plus" aria-label="Alza lo scaffale di 10 mm">+</button></div>
       </div>
       <div class="row"><span>Livelli</span>
         <div class="counter"><button id="lv-minus" aria-label="Togli un livello">−</button><output id="levels" aria-live="polite">2</output><button id="lv-plus" aria-label="Aggiungi un livello">+</button></div>
@@ -238,7 +238,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
       <h2 id="g-sign">Insegna prezzi</h2>
       <label class="switch">Mostra insegna <input type="checkbox" id="sign-on" checked></label>
       <div class="row"><span>Altezza</span>
-        <div class="counter"><button id="sg-minus" aria-label="Abbassa l'insegna di 1 cm">−</button><output id="sign-h-val" aria-live="polite">32</output><button id="sg-plus" aria-label="Alza l'insegna di 1 cm">+</button></div>
+        <div class="counter"><button id="sg-minus" aria-label="Abbassa l'insegna di 1 cm">−</button><output id="sign-h-val" aria-live="polite">50</output><button id="sg-plus" aria-label="Alza l'insegna di 1 cm">+</button></div>
       </div>
       <label class="switch">Cartelli prezzo A4 <input type="checkbox" id="tags-on" checked></label>
     </section>
@@ -562,8 +562,8 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
   const panels = new THREE.Group(); scene.add(panels);
 
   // --- stato ---
-  const st = { n: 0, shelfOn: true, hs: 800, levels: 2, top: true, panels: true, ex: 0, man: true, nBr: 0,
-               sign: true, signH: 320, step: 0, tags: true };
+  const st = { n: 0, shelfOn: true, hs: 700, levels: 2, top: true, panels: true, ex: 0, man: true, nBr: 0,
+               sign: true, signH: 500, step: 0, tags: true };
   const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
   // Pannello estruso: profilo (u, v) in mm, spessore lungo l'asse locale z
@@ -1439,7 +1439,7 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
   drawTags();
   Promise.all(['700 100px "Amatic SC"', '100px Anton', '700 100px Montserrat'].map(f => document.fonts.load(f)))
     .then(drawTags).catch(() => {});
-  setCount(3);
+  setCount(2);   // preset: 2 pallet, scaffale 700 / 2 livelli, insegna 50 cm
   frame('iso', false);
   requestAnimationFrame(tick);
 })();

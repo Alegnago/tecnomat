@@ -4,12 +4,14 @@ Configuratore 3D (three.js) di un espositore su pallet EPAL 1 (EN 13698-1, 1200 
 
 Apri `index.html` nel browser: non serve build.
 
+Preset all'apertura: 2 pallet, pannelli 6 mm, scaffale alto 700 mm con 2 livelli e piano superiore, insegna alta 50 cm con i cartelli A4.
+
 ## Cosa fa
 - Numero di pallet impilati (1–12), con quote in mm.
 - Scaffale in pannelli antracite da 18 mm: pianta 1200 × 800, spina centrale, 3 vani sul fronte e 2 sul retro, livelli e altezza regolabili, piano superiore.
 - Fianchi esterni che scendono sulle testate dei pallet fino a 100 mm da terra (aperture forche libere).
 - Pannelli 6 mm sui lati lunghi.
-- Insegna in OSB 18 mm fissata al piano superiore con squadrette a L, altezza regolabile al centimetro con contatore (default 32 cm: i cartelli A4 restano a 1 cm dal bordo alto).
+- Insegna in OSB 18 mm fissata al piano superiore con squadrette a L, altezza regolabile al centimetro con contatore (i cartelli A4 restano a 1 cm dal bordo alto).
 - Montaggio passo-passo, vista esplosa, figura umana di 175 cm di riferimento.
 - Pannelli in OSB di pioppo verniciato antracite (texture OSB procedurale ripetibile).
 - Pulsante **Scarica il PDF di taglio**: riepilogo, una tavola quotata per tipo di pannello (fori, quantità, posizione 3D) e sequenza di montaggio.
