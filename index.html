@@ -138,6 +138,12 @@ td.n, th.n { text-align: right; font-family: var(--f-mono); font-variant-numeric
 details summary { cursor: pointer; font-size: 13px; }
 details[open] summary { margin-bottom: 8px; }
 
+.cta-btn {
+  height: 48px; font: 600 15px/1 var(--f-body); color: #fff; background: #d4561f;
+  border: 0; border-radius: 4px; cursor: pointer;
+}
+.cta-btn:hover { background: #b8471a; }
+.cta-btn:disabled { opacity: .6; cursor: progress; }
 button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
 @media (max-width: 860px) {
@@ -178,7 +184,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
     <div class="block">
       <span class="eyebrow">Tavola 01 · Espositore custodie neve</span>
       <h1>Base pallet EPAL e scaffale</h1>
-      <p class="sub">EPAL 1 EN 13698-1 · pannelli legno 18 mm · quote in mm</p>
+      <p class="sub">EPAL 1 EN 13698-1 · OSB di pioppo 18 mm verniciato antracite · quote in mm</p>
     </div>
 
     <div class="block">
@@ -189,7 +195,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
         <button id="plus" aria-label="Aggiungi un pallet">+</button>
       </div>
       <input type="range" id="range" min="1" max="12" step="1" value="3" aria-label="Numero pallet">
-      <label class="toggle"><input type="checkbox" id="panels-on" checked> Pannelli 6 mm antracite sui lati lunghi</label>
+      <label class="toggle"><input type="checkbox" id="panels-on" checked> Pannelli OSB 6 mm sui lati lunghi</label>
       <p class="note">Lati lunghi chiusi del tutto. Sui lati corti scende il fianco da 18 mm dello scaffale e si ferma a 100 da terra, sopra le aperture forche (227,5 × 100).</p>
     </div>
 
@@ -273,11 +279,17 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
         <p class="note">Altezza 22 + 78 + 22 + 22 = 144. Luce tra tavole superiori 41,25.</p>
       </details>
     </div>
+    <div class="block">
+      <span class="eyebrow">Esporta</span>
+      <button id="pdf-btn" class="cta-btn">Scarica il PDF di taglio</button>
+      <p class="note" id="pdf-msg">Una tavola per ogni tipo di pannello con quote, fori, quantità e posizione nell'espositore, più riepilogo, ferramenta e sequenza di montaggio.</p>
+    </div>
   </aside>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 /* --- cartello.js (copia in linea) --- */
 // Cartello prezzo A4 (210 × 297 mm) sullo schema del cartello arancione del punto vendita.
@@ -454,7 +466,49 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
   // pallet legno naturale, scaffale grigio antracite
   const M_DECK = new THREE.MeshStandardMaterial({ color: 0xcfa874, roughness: 0.85 });
   const M_BLOCK = new THREE.MeshStandardMaterial({ color: 0xa97e4f, roughness: 0.9 });
-  const M_PANEL = new THREE.MeshStandardMaterial({ color: 0x4a4d52, roughness: 0.7 });
+  // OSB di pioppo verniciato antracite: texture procedurale ripetibile (scaglie orientate), usata come
+  // tono leggero e come rilievo. Tile di OSB_TILE metri, UV dei pannelli in scala reale.
+  const OSB_TILE = 0.6;
+  const osbTex = (() => {
+    const N = 1024, cv = document.createElement('canvas'); cv.width = cv.height = N;
+    const x = cv.getContext('2d');
+    let sd = 7; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+    x.fillStyle = '#d8d8d8'; x.fillRect(0, 0, N, N);
+    const flake = (cx, cy, len, wid, ang, g) => {
+      x.save(); x.translate(cx, cy); x.rotate(ang);
+      x.beginPath();
+      x.moveTo(-len / 2, -wid / 2 * (0.6 + r() * 0.4)); x.lineTo(len / 2, -wid / 2); x.lineTo(len / 2 * (0.9 + r() * 0.1), wid / 2);
+      x.lineTo(-len / 2 * (0.85 + r() * 0.15), wid / 2 * (0.7 + r() * 0.3)); x.closePath();
+      x.fillStyle = `rgb(${g},${g},${g})`; x.fill();
+      x.strokeStyle = 'rgba(150,150,150,0.55)'; x.lineWidth = 1.2; x.stroke();
+      x.restore();
+    };
+    for (let i = 0; i < 2300; i++) {
+      const cx = r() * N, cy = r() * N, len = 40 + r() * 120, wid = 10 + r() * 28;
+      const ang = (r() - 0.5) * 0.9 + (r() < 0.35 ? Math.PI / 2 : 0);   // orientate per lo più lungo il pannello
+      const g = 196 + Math.floor(r() * 56), m = len / 2 + wid;
+      const base = sd;                                                    // stessa forma per ogni copia
+      for (const ox of [-N, 0, N]) for (const oy of [-N, 0, N]) {           // ripetibile: copie sui bordi
+        const px = cx + ox, py = cy + oy;
+        if (px + m < 0 || px - m > N || py + m < 0 || py - m > N) continue;
+        sd = base; flake(px, py, len, wid, ang, g);
+      }
+    }
+    const t = new THREE.CanvasTexture(cv);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    return t;
+  })();
+  const M_PANEL = new THREE.MeshStandardMaterial({ color: 0x55595e, roughness: 0.78, map: osbTex, bumpMap: osbTex, bumpScale: 0.0012 });
+  const M_FOREX = new THREE.MeshStandardMaterial({ color: 0x4a4d52, roughness: 0.6 });
+  // UV di un BoxGeometry in metri / OSB_TILE, così la texture non si stira sui pannelli lunghi
+  function osbUV(g, sx, sy, sz) {
+    const uv = g.attributes.uv, dims = [[sz, sy], [sz, sy], [sx, sz], [sx, sz], [sx, sy], [sx, sy]];
+    for (let f = 0; f < 6; f++) for (let i = 0; i < 4; i++) {
+      const k = f * 4 + i;
+      uv.setXY(k, uv.getX(k) * dims[f][0] / OSB_TILE, uv.getY(k) * dims[f][1] / OSB_TILE);
+    }
+    uv.needsUpdate = true;
+  }
   const M_STEEL = new THREE.MeshStandardMaterial({ color: 0xc2c7cc, metalness: 0.6, roughness: 0.35 });
   const M_MAN = new THREE.MeshStandardMaterial({ color: 0xa9b1b8, roughness: 0.9 });
   const edgeMat = new THREE.LineBasicMaterial({ transparent: true, opacity: 0.55 });
@@ -462,6 +516,7 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
   // box in coordinate pallet (mm) → three (m), pianta centrata nell'origine
   function box(x0, x1, y0, y1, z0, z1, mat, parent, noEdge) {
     const g = new THREE.BoxGeometry((x1 - x0) * MM, (z1 - z0) * MM, (y1 - y0) * MM);
+    if (mat === M_PANEL) osbUV(g, (x1 - x0) * MM, (z1 - z0) * MM, (y1 - y0) * MM);
     const m = new THREE.Mesh(g, mat);
     m.position.set(((x0 + x1) / 2 - L / 2) * MM, ((z0 + z1) / 2) * MM, ((y0 + y1) / 2 - W / 2) * MM);
     m.castShadow = m.receiveShadow = true;
@@ -501,6 +556,8 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
   function slab(pts, mesh) {
     const s = new THREE.Shape(pts.map(([u, v]) => new THREE.Vector2(u * MM, v * MM)));
     const g = new THREE.ExtrudeGeometry(s, { depth: PT * MM, bevelEnabled: false });
+    const uv = g.attributes.uv;                                   // UV già in metri: scala sul tile
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / OSB_TILE, uv.getY(i) / OSB_TILE);
     const m = new THREE.Mesh(g, M_PANEL);
     m.castShadow = m.receiveShadow = true;
     m.add(new THREE.LineSegments(new THREE.EdgesGeometry(g), edgeMat));
@@ -522,7 +579,7 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
     for (const y of [-PT, W]) {                      // piano XZ, estrusione verso +Y
       const m = slab(long);
       m.position.set(-L / 2 * MM, 0, (y - W / 2) * MM);
-      stp(tag(m, V(0, 0, (y < 0 ? -1 : 1) * EX * 2.2)), sP);
+      part(stp(tag(m, V(0, 0, (y < 0 ? -1 : 1) * EX * 2.2)), sP), 'G');
     }
   }
 
@@ -530,19 +587,29 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
   const MAN_DX = 1050, MAN_H = 1750;            // distanza asse figura dal lato corto (mm)
   const man = new THREE.Group(); scene.add(man);
   (() => {
-    const part = (geo, x, y, z, sx = 1, sz = 1) => {
-      const m = new THREE.Mesh(geo, M_MAN); m.position.set(x * MM, y * MM, z * MM);
-      m.scale.set(sx, 1, sz); m.castShadow = true; man.add(m);
+    // omino stilizzato: aste sottili con giunture tonde, testa in cima a 1750
+    const R = 30, add = m => { m.castShadow = true; man.add(m); return m; };
+    const joint = (p, r = R) => add(new THREE.Mesh(new THREE.SphereGeometry(r * MM, 18, 12), M_MAN)).position.set(p[0] * MM, p[1] * MM, p[2] * MM);
+    const stick = (a, b, r = R) => {
+      const va = V(...a).multiplyScalar(MM), vb = V(...b).multiplyScalar(MM), d = vb.clone().sub(va);
+      const m = add(new THREE.Mesh(new THREE.CylinderGeometry(r * MM, r * MM, d.length(), 16), M_MAN));
+      m.position.copy(va).add(vb).multiplyScalar(0.5);
+      m.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize());
+      joint(a, r); joint(b, r);
     };
-    const cyl = (rt, rb, h) => new THREE.CylinderGeometry(rt * MM, rb * MM, h * MM, 20);
+    const neck = [0, 1500, 0], pelvis = [0, 960, 0];
+    stick(neck, pelvis, 34);                                                       // busto
+    stick([-185, 1420, 0], [185, 1420, 0], 26);                                    // spalle
     for (const sx of [-1, 1]) {
-      part(cyl(62, 50, 860), sx * 95, 430, 0);                          // gamba
-      part(new THREE.SphereGeometry(55 * MM, 16, 12), sx * 95, 25, 30, 1, 1.6); // piede
-      part(cyl(44, 36, 640), sx * 245, 1130, 0);                        // braccio
+      stick([sx * 185, 1420, 0], [sx * 235, 1150, 10]);                            // braccio
+      stick([sx * 235, 1150, 10], [sx * 255, 900, 40]);                            // avambraccio
+      joint([sx * 255, 900, 40], 38);                                              // mano
+      stick([0, 960, 0], [sx * 105, 930, 0], 30);                                  // bacino
+      stick([sx * 105, 930, 0], [sx * 115, 500, 15]);                              // coscia
+      stick([sx * 115, 500, 15], [sx * 120, 45, 0]);                               // gamba
+      stick([sx * 120, 45, 0], [sx * 125, 35, 110], 28);                           // piede
     }
-    part(cyl(195, 160, 620), 0, 1160, 0, 1, 0.55);                      // busto
-    part(cyl(50, 55, 90), 0, 1500, 0);                                  // collo
-    part(new THREE.SphereGeometry(112 * MM, 24, 18), 0, 1636, 0, 0.9, 1); // testa → 1748
+    joint([0, 1630, 0], 118);                                                      // testa → 1748
     man.position.set((L / 2 + MAN_DX) * MM, 0, 0);
   })();
 
@@ -567,15 +634,16 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
     tag(box(0, L, yc - U.w / 2, yc - U.w / 2 + U.t, zb, zb + U.h, M_ALU, signG, true), e).userData.step = sS;    // aletta
     tag(box(0, L, yc + U.w / 2 - U.t, yc + U.w / 2, zb, zb + U.h, M_ALU, signG, true), e).userData.step = sS;    // aletta
     const g = new THREE.BoxGeometry(L * MM, st.signH * MM, SIGN_T * MM);
-    const m = new THREE.Mesh(g, M_PANEL);
+    const m = new THREE.Mesh(g, M_FOREX);
     m.position.set(0, (zb + U.t + st.signH / 2) * MM, 0);
     m.castShadow = m.receiveShadow = true;
     m.add(new THREE.LineSegments(new THREE.EdgesGeometry(g), edgeMat));
-    signG.add(m); stp(tag(m, es), sS);
+    signG.add(m); part(stp(tag(m, es), sS), 'H');
     if (!st.tags) return;
-    // cartelli A4 in cartoncino da 1 mm: appoggiati sull'aletta del profilo a U, staccati 1 mm dal foglio.
+    // cartelli A4 in cartoncino da 1 mm, staccati 1 mm dal foglio: a 1 cm dal bordo alto del foglio,
+    // oppure appoggiati sull'aletta del profilo a U se il foglio è basso.
     // Fronte S·M·L sopra i 3 vani, retro XL·XXL sopra i 2.
-    const CARD = 1, zc = (zb + U.h + 297 / 2) * MM;
+    const CARD = 1, zc = Math.max(zb + U.h + 297 / 2, zb + U.t + st.signH - 10 - 297 / 2) * MM;
     const spots = [...[0, 1, 2].map(k => [k * (VF + S) + VF / 2, 1]), ...[0, 1].map(k => [k * (VB + S) + VB / 2, -1])];
     spots.forEach(([x, side], i) => {
       const g = new THREE.BoxGeometry(0.21, 0.297, CARD * MM);
@@ -601,6 +669,7 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
   let steps = [];
   const addStep = title => steps.push({ title, screws: [], br: 0 }) - 1;
   const stp = (m, s) => { m.userData.step = s; return m; };
+  const part = (m, p) => { m.userData.part = p; return m; };   // tipo di pannello per il PDF
   // vite: p = punto d'ingresso (mm), d = direzione di avvitatura (asse pallet)
   const screw = (s, p, d, t) => steps[s].screws.push({ p, d, t });
   const T_BR = { name: 'Vite truciolare testa svasata, squadrette', size: '3,5 × 16', short: 'viti 3,5 × 16', d: 3.5, len: 16 };
@@ -670,7 +739,7 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
       const zb = z0 + i * (S + ch), zc0 = zb + S, zc1 = zc0 + ch, zm = (zc0 + zc1) / 2;
       const hasTop = i < st.levels - 1 || st.top;
       const e = V(0, i * EX * 1.6, 0), ev = V(0, i * EX * 1.6 + EX * 0.7, 0);
-      stp(tag(box(0, L, 0, W, zb, zb + S, M_PANEL, shelf), e), sRip);                  // ripiano
+      part(stp(tag(box(0, L, 0, W, zb, zb + S, M_PANEL, shelf), e), sRip), i === 0 ? 'B' : 'C');                  // ripiano
       if (topJobs.length) { topJobs.forEach(j => j(sRip)); cfHeads(zb + S, sRip); topJobs = []; }
       // ripiano ↔ fianchi: squadrette (sopra il fondo, sotto gli altri) e confirmat dai fianchi
       for (const y of [yB, yF]) {
@@ -680,7 +749,7 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
       cfSide.push(zb + S / 2);
 
       const sLv = addStep(`Livello ${i + 1}: metti in piedi spina centrale e ${nDiv} divisori, fissali al ripiano e tra loro con le squadrette.`);
-      stp(tag(box(0, L, DEPTH, DEPTH + S, zc0, zc1, M_PANEL, shelf), ev), sLv);        // spina centrale
+      part(stp(tag(box(0, L, DEPTH, DEPTH + S, zc0, zc1, M_PANEL, shelf), ev), sLv), 'E');        // spina centrale
       for (let k = 0; k < FRONT_N; k++) {                                              // spina: un piede per vano, lato fronte
         bracket([fx(k), DEPTH + S, zc0], 'y+', 'z+', ev, sLv);
         if (hasTop) topJobs.push(s => bracket([fx(k), DEPTH + S, zc1], 'y+', 'z-', ev, s));
@@ -694,7 +763,7 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
         sideJobs.push(s => bracket([x0, y, zm], x0 === 0 ? 'x+' : 'x-', ys, ev, s));
       }
       const divider = (x, y0, y1, yc, ySp, dir, ed) => {
-        stp(tag(box(x, x + S, y0, y1, zc0, zc1, M_PANEL, shelf), ed), sLv);
+        part(stp(tag(box(x, x + S, y0, y1, zc0, zc1, M_PANEL, shelf), ed), sLv), 'F');
         for (const [xc, xs] of [[x + S, 'x+'], [x, 'x-']]) {
           bracket([xc, yc, zc0], xs, 'z+', ed, sLv);                                  // piede
           bracket([xc, ySp, zm], xs, dir, ed, sLv);                                   // incrocio a T con la spina
@@ -708,13 +777,13 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
     if (st.top) {
       const zt = z0 + st.hs - S, e = V(0, st.levels * EX * 1.6 + EX, 0);
       const sTop = addStep('Chiudi con il piano superiore: squadrette in testa a spina e divisori, confirmat dall\'alto nelle teste.');
-      stp(tag(box(0, L, 0, W, zt, zt + S, M_PANEL, shelf), e), sTop);                 // piano superiore
+      part(stp(tag(box(0, L, 0, W, zt, zt + S, M_PANEL, shelf), e), sTop), 'D');                 // piano superiore
       topJobs.forEach(j => j(sTop)); cfHeads(zt + S, sTop);
       for (const y of [yB, yF]) sideJobs.push(s => bracket([0, y, zt], 'x+', 'z-', e, s), s => bracket([L, y, zt], 'x-', 'z-', e, s));
       cfSide.push(zt + S / 2);
     }
     const sSide = addStep('Monta i due fianchi: confirmat nei bordi di ripiani e piano, viti nelle traverse dei pallet, squadrette negli angoli interni. Si fermano a 100 da terra, sopra le aperture forche.');
-    sides.forEach(m => stp(m, sSide));
+    sides.forEach(m => part(stp(m, sSide), 'A'));
     sideJobs.forEach(j => j(sSide));
     for (const zc of cfSide) for (const y of [100, 400, 700]) {
       screw(sSide, [-S, y, zc], [1, 0, 0], T_CF); screw(sSide, [L + S, y, zc], [-1, 0, 0], T_CF);
@@ -798,7 +867,7 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
       ['Divisorio retro', st.levels * (BACK_N - 1), `${DEPTH} × ${fmt(ch)}`],
     ].map(r => [r[0], r[1], r[2] + ' × 18']);
     if (st.panels) rows.push(
-      ['Pannello 6 mm antracite, lato lungo', 2, `${L + 2 * sideX()} × ${fmt(st.n * H)} × ${PT}`]);
+      ['Pannello OSB di pioppo 6 mm verniciato antracite, lato lungo', 2, `${L + 2 * sideX()} × ${fmt(st.n * H)} × ${PT}`]);
     if (st.sign) rows.push(
       ['Foglio forex grigio antracite', 1, `${L} × ${fmt(st.signH)} × ${SIGN_T}`],
       ['Profilo U alluminio, luce interna 10', 1, `${L} × ${U.h} × ${U.w}`]);
@@ -970,6 +1039,15 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
   }
   new ResizeObserver(resize).observe(stage);
 
+  // posizioni con esploso ek (0…1) e caduta dei pallet appena aggiunti
+  function layout(ek) {
+    pallets.forEach((p, i) => { p.position.y = i * H * MM + p.userData.drop + i * EX * ek; });
+    const topDrop = pallets.length ? pallets[pallets.length - 1].userData.drop : 0;
+    shelf.position.y = topDrop + (st.n + 1) * EX * ek;
+    signG.position.y = shelf.position.y + (st.shelfOn ? (st.levels * 1.6 + 1.2) * EX * ek : 0);
+    applyEx(shelf, ek); applyEx(panels, ek); applyEx(signG, ek);
+  }
+
   // --- loop ---
   const v = new THREE.Vector3();
   function tick(now) {
@@ -979,11 +1057,7 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
       if (k >= 1) drops.splice(i, 1);
     }
     const ek = st.ex;
-    pallets.forEach((p, i) => { p.position.y = i * H * MM + p.userData.drop + i * EX * ek; });
-    const topDrop = pallets.length ? pallets[pallets.length - 1].userData.drop : 0;
-    shelf.position.y = topDrop + (st.n + 1) * EX * ek;
-    signG.position.y = shelf.position.y + (st.shelfOn ? (st.levels * 1.6 + 1.2) * EX * ek : 0);
-    applyEx(shelf, ek); applyEx(panels, ek); applyEx(signG, ek);
+    layout(ek);
     controls.update();
     renderer.render(scene, camera);
     const w = stage.clientWidth, h = stage.clientHeight;
@@ -1009,6 +1083,7 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
     if (cm >= 5 && cm <= 100) { st.signH = cm * 10; refresh(false); }
   };
   $('sign-h').onchange = e => { const cm = Math.round(+e.target.value); e.target.value = Math.min(100, Math.max(5, cm || 32)); e.target.dispatchEvent(new Event('input')); frame(currentView, true); };
+  $('pdf-btn').onclick = exportPdf;
   $('st-prev').onclick = () => goStep(st.step - 1);
   $('st-next').onclick = () => goStep(st.step + 1);
   $('st-exit').onclick = () => goStep(0);
@@ -1026,6 +1101,309 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
   $('lv-minus').onclick = () => { st.levels = Math.max(1, st.levels - 1); refresh(false); };
   $('lv-plus').onclick = () => { st.levels = Math.min(6, st.levels + 1); refresh(true); };
   document.querySelectorAll('.views button').forEach(b => b.onclick = () => frame(b.dataset.view, false));
+
+
+  // --- esportazione PDF: una tavola per tipo di pannello, quote, fori, quantità, posizione ---
+  const ORG = [212, 86, 31], RED = [179, 38, 30], INKC = [29, 36, 34], GREYC = [110, 118, 114];
+  const pdfTxt = v => String(v).replace(/→/g, '>').replace(/[‘’]/g, "'").replace(/[^\x00-\xFF€…]/g, '');
+  const HOLES = {
+    cf: 'Ø7 passante, svasato · confirmat 7 × 50',
+    s45: 'Ø4 passante, svasato · vite 4 × 50',
+    s35: 'Ø3,5 passante, svasato · vite 3,5 × 30',
+    pu: 'preforo Ø2,5 prof. 15 · vite 3,5 × 20 (profilo U)',
+    edge: 'preforo in testa Ø5 prof. 45 · punta del confirmat',
+  };
+  function panelTypes() {
+    const ch = clearH(), sx = sideX(), types = [];
+    const nDiv = FRONT_N - 1 + BACK_N - 1;
+    const xF = k => k * VF + (k - 1) * S, xB = k => k * VB + (k - 1) * S;
+    const edgeCf = [100, 400, 700].flatMap(v => [{ edge: 'L', pos: v }, { edge: 'R', pos: v }]);
+    const heads = [];
+    for (let k = 0; k < 4; k++) heads.push({ u: L * (k + 0.5) / 4, v: DEPTH + S / 2, kind: 'cf' });
+    for (let k = 1; k < FRONT_N; k++) for (const f of [0.25, 0.75]) heads.push({ u: xF(k) + S / 2, v: DEPTH + S + DEPTH * f, kind: 'cf' });
+    for (let k = 1; k < BACK_N; k++) for (const f of [0.25, 0.75]) heads.push({ u: xB(k) + S / 2, v: DEPTH * f, kind: 'cf' });
+    const P18 = 'OSB di pioppo 18 mm, verniciato antracite';
+    if (st.shelfOn) {
+      const zs = [];
+      for (let i = 0; i < st.levels; i++) zs.push(st.n * H + i * (S + ch) + S / 2);
+      if (st.top) zs.push(st.n * H + st.hs - S / 2);
+      types.push({ part: 'A', name: 'Fianco', qty: 2, w: W, h: st.n * H + st.hs - FORK_H, t: S, mat: P18, edge: [],
+        face: [...zs.flatMap(z => [100, 400, 700].map(u => ({ u, v: z - FORK_H, kind: 'cf' }))),
+               ...Array.from({ length: st.n }, (_, p) => [50, 400, 750].map(u => ({ u, v: p * H + T + BH + T / 2 - FORK_H, kind: 's45' }))).flat()],
+        note: 'Fori sulla faccia esterna: confirmat nei bordi di ripiani e piano, viti 4 × 50 nelle traverse dei pallet. Parte da 100 mm da terra, così le aperture per le forche restano libere. Il fianco destro è speculare.' });
+      types.push({ part: 'B', name: 'Fondo', qty: 1, w: L, h: W, t: S, mat: P18, edge: edgeCf,
+        face: [[72.5, 72.5], [600, 72.5], [1127.5, 72.5], [72.5, 727.5], [600, 727.5], [1127.5, 727.5], [72.5, 360], [1127.5, 360]].map(([u, v]) => ({ u, v, kind: 's45' })),
+        note: 'Appoggia sul pallet in alto; le viti 4 × 50 entrano nelle tavole del pallet. Sulle teste corte i prefori per i confirmat dei fianchi.' });
+      if (st.levels > 1) types.push({ part: 'C', name: 'Ripiano intermedio', qty: st.levels - 1, w: L, h: W, t: S, mat: P18, face: heads, edge: edgeCf,
+        note: "Fori dall'alto per i confirmat nelle teste di spina e divisori del livello sotto. Sulle teste corte i prefori per i confirmat dei fianchi." });
+      if (st.top) types.push({ part: 'D', name: 'Piano superiore', qty: 1, w: L, h: W, t: S, mat: P18, edge: edgeCf,
+        face: [...heads, ...(st.sign ? [150, 450, 750, 1050].map(u => ({ u, v: W / 2, kind: 'pu' })) : [])],
+        note: 'Come il ripiano intermedio' + (st.sign ? ", più 4 prefori in mezzeria per il profilo a U dell'insegna." : '.') });
+      const topCf = st.levels > 1 || st.top;
+      types.push({ part: 'E', name: 'Spina centrale', qty: st.levels, w: L, h: ch, t: S, mat: P18, face: [],
+        edge: topCf ? [0, 1, 2, 3].map(k => ({ edge: 'T', pos: L * (k + 0.5) / 4 })) : [],
+        note: 'Testa superiore: prefori per i confirmat del ripiano sopra. Unita al ripiano e ai fianchi con squadrette a L su entrambi i lati.' });
+      types.push({ part: 'F', name: 'Divisorio', qty: st.levels * nDiv, w: DEPTH, h: ch, t: S, mat: P18, face: [],
+        edge: topCf ? [0.25, 0.75].map(f => ({ edge: 'T', pos: DEPTH * f })) : [],
+        note: `${st.levels * (FRONT_N - 1)} sul fronte e ${st.levels * (BACK_N - 1)} sul retro, tutti uguali. Il lato verticale va contro la spina; squadrette al piede, in testa e nell'incrocio a T.` });
+    }
+    if (st.panels) types.push({ part: 'G', name: 'Pannello di chiusura lato lungo', qty: 2, w: L + 2 * sx, h: st.n * H, t: PT, mat: 'OSB di pioppo 6 mm, verniciato antracite', edge: [],
+      face: Array.from({ length: st.n }, (_, p) => [72.5, 600, 1127.5].map(x => ({ u: x + sx, v: p * H + T + BH / 2, kind: 's35' }))).flat(),
+      note: 'Le viti entrano nei blocchi dei pallet e li legano tra loro. Copre anche i bordi dei fianchi.' });
+    if (st.sign) types.push({ part: 'H', name: 'Foglio insegna', qty: 1, w: L, h: st.signH, t: SIGN_T, mat: 'Forex 10 mm grigio antracite', face: [], edge: [],
+      note: 'Senza fori: si infila nel profilo a U.' + (st.tags ? ' I 5 cartelli A4 vanno a 1 cm dal bordo alto, sopra i rispettivi vani.' : '') });
+    types.forEach((t, i) => { t.code = String.fromCharCode(65 + i); });
+    return types;
+  }
+
+  // vista 3D fissa in iso, con il pannello del tipo `code` in arancione (null = nessuno)
+  function snapshot(code) {
+    const camPos = camera.position.clone(), tgt = controls.target.clone();
+    dimGroup.visible = screwG.visible = man.visible = false;
+    layout(0);
+    for (const g of [shelf, panels, signG, ...pallets]) for (const m of g.children) {
+      if (!m.isMesh) continue;
+      if (!m.userData.mat0) m.userData.mat0 = m.material;
+      m.visible = true;
+      m.material = code && m.userData.part === code ? hlMat(m.userData.mat0) : m.userData.mat0;
+    }
+    renderer.setSize(1200, 900, false); camera.aspect = 4 / 3; camera.updateProjectionMatrix();
+    const h = totalH() * MM, c = V(0, h / 2, 0), r = Math.hypot(1.24, 0.82, h) / 2;
+    camera.position.copy(c).addScaledVector(V(0.75, 0.55, 1).normalize(), r / Math.sin(camera.fov * Math.PI / 360) * 1.02);
+    camera.lookAt(c);
+    renderer.render(scene, camera);
+    const url = renderer.domElement.toDataURL('image/jpeg', 0.9);
+    camera.position.copy(camPos); controls.target.copy(tgt); controls.update();
+    man.visible = st.man; screwG.visible = true;
+    resize(); applyStep();
+    return url;
+  }
+
+  function buildPdf() {
+    const doc = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const types = panelTypes(), total = types.length + 2, date = new Date().toLocaleDateString('it-IT');
+    const shots = { all: snapshot(null) };
+    types.forEach(t => { shots[t.part] = snapshot(t.part); });
+    const T_ = (str, x, y, o) => doc.text(pdfTxt(str), x, y, o);
+    const font = (size, style = 'normal', col = INKC) => { doc.setFont('helvetica', style); doc.setFontSize(size); doc.setTextColor(...col); };
+
+    function sheet(k, scale) {
+      doc.setDrawColor(...INKC); doc.setLineWidth(0.3); doc.rect(8, 8, 281, 194);
+      doc.setLineWidth(0.2); doc.rect(196, 184, 93, 18); doc.line(196, 190, 289, 190);
+      font(8.5, 'bold'); T_('ESPOSITORE CALZE NEVE', 199, 188.5);
+      font(7); T_(`Tavola ${k} di ${total}  ·  ${scale ? 'scala 1:' + scale + '  ·  ' : ''}quote in mm`, 199, 195);
+      T_(`${st.n} pallet EPAL  ·  scaffale ${st.shelfOn ? st.hs + ' / ' + st.levels + ' livelli' : 'no'}  ·  ${date}`, 199, 199.5);
+    }
+    function eyebrow(str, x, y) { font(7, 'bold', GREYC); T_(str.toUpperCase(), x, y); }
+    function symbol(kind, x, y) {
+      doc.setDrawColor(...INKC); doc.setFillColor(...INKC); doc.setLineWidth(0.25);
+      if (kind === 'cf') { doc.circle(x, y, 1.7, 'S'); doc.line(x - 2.4, y, x + 2.4, y); doc.line(x, y - 2.4, x, y + 2.4); }
+      else if (kind === 's45') doc.circle(x, y, 1.2, 'F');
+      else if (kind === 's35') { doc.circle(x, y, 1.2, 'S'); doc.circle(x, y, 0.35, 'F'); }
+      else if (kind === 'pu') doc.circle(x, y, 0.8, 'S');
+      else if (kind === 'edge') { doc.setFillColor(...ORG); doc.triangle(x - 1.3, y - 1.6, x + 1.3, y - 1.6, x, y + 0.6, 'F'); }
+    }
+    function dimH(x1, x2, y, yRef, label) {
+      doc.setDrawColor(...RED); doc.setLineWidth(0.15);
+      doc.line(x1, yRef + 1, x1, y + 1.5); doc.line(x2, yRef + 1, x2, y + 1.5); doc.line(x1 - 1.5, y, x2 + 1.5, y);
+      for (const x of [x1, x2]) doc.line(x - 1, y + 1, x + 1, y - 1);
+      font(8.5, 'bold', RED); T_(label, (x1 + x2) / 2, y - 1.2, { align: 'center' });
+    }
+    function dimV(y1, y2, x, xRef, label) {
+      doc.setDrawColor(...RED); doc.setLineWidth(0.15);
+      doc.line(xRef - 1, y1, x - 1.5, y1); doc.line(xRef - 1, y2, x - 1.5, y2); doc.line(x, y1 - 1.5, x, y2 + 1.5);
+      for (const y of [y1, y2]) doc.line(x - 1, y + 1, x + 1, y - 1);
+      font(8.5, 'bold', RED); const w = doc.getTextWidth(pdfTxt(label));
+      T_(label, x - 1.2, (y1 + y2) / 2 + w / 2, { angle: 90 });
+    }
+
+    // disegno quotato del pannello nel riquadro b; ritorna la scala usata
+    function drawPanel(t, b) {
+      const aw = b.w - 44, ah = b.h - 44;
+      const N = [5, 10, 15, 20, 25, 30, 40, 50].find(n => t.w / n <= aw && t.h / n <= ah) || 50;
+      const pw = t.w / N, ph = t.h / N, px = b.x + 28 + (aw - pw) / 2, py = b.y + 22 + (ah - ph) / 2;
+      const X = u => px + u / N, Y = v => py + ph - v / N;
+      doc.setFillColor(232, 234, 232); doc.setDrawColor(...INKC); doc.setLineWidth(0.4); doc.rect(px, py, pw, ph, 'FD');
+      font(6.5, 'normal', GREYC); T_('faccia in vista, origine in basso a sinistra', px, py + ph + 4);
+      dimH(px, px + pw, py + ph + 13, py + ph, fmt(t.w));
+      dimV(py, py + ph, px - 16, px, fmt(t.h));
+      // fori in faccia e prefori in testa
+      t.face.forEach(o => symbol(o.kind, X(o.u), Y(o.v)));
+      doc.setDrawColor(...ORG); doc.setLineWidth(0.2); doc.setLineDashPattern([0.8, 0.6], 0);
+      const depth = 45 / N;
+      t.edge.forEach(o => {
+        if (o.edge === 'T') doc.line(X(o.pos), py, X(o.pos), py + depth);
+        if (o.edge === 'L') doc.line(px, Y(o.pos), px + depth, Y(o.pos));
+        if (o.edge === 'R') doc.line(px + pw, Y(o.pos), px + pw - depth, Y(o.pos));
+      });
+      doc.setLineDashPattern([], 0);
+      t.edge.forEach(o => {
+        doc.setFillColor(...ORG);
+        if (o.edge === 'T') doc.triangle(X(o.pos) - 1.2, py - 1.8, X(o.pos) + 1.2, py - 1.8, X(o.pos), py, 'F');
+        if (o.edge === 'L') doc.triangle(px - 1.8, Y(o.pos) - 1.2, px - 1.8, Y(o.pos) + 1.2, px, Y(o.pos), 'F');
+        if (o.edge === 'R') doc.triangle(px + pw + 1.8, Y(o.pos) - 1.2, px + pw + 1.8, Y(o.pos) + 1.2, px + pw, Y(o.pos), 'F');
+      });
+      // quote progressive dei fori: orizzontali sopra, verticali a destra
+      const us = [...new Set([...t.face.map(o => o.u), ...t.edge.filter(o => o.edge === 'T').map(o => o.pos)])].sort((a, z) => a - z);
+      const vs = [...new Set([...t.face.map(o => o.v), ...t.edge.filter(o => o.edge !== 'T').map(o => o.pos)])].sort((a, z) => a - z);
+      doc.setDrawColor(...RED); doc.setLineWidth(0.15);
+      if (us.length) {
+        const y = py - 6;
+        doc.line(X(0), y, X(us[us.length - 1]), y); doc.circle(X(0), y, 0.7, 'S');
+        font(6.5, 'normal', RED);
+        let lastX = -99, up = false;                                 // quote vicine: sfalsate in altezza
+        us.forEach(u => {
+          up = X(u) - lastX < 3 ? !up : false; lastX = X(u);
+          doc.line(X(u), y - 1, X(u), y + 1);
+          if (up) doc.line(X(u), y - 1, X(u), y - 9);
+          T_(fmt(u), X(u) + 0.8, y - 1.3 - (up ? 9 : 0), { angle: 90 });
+        });
+        doc.setLineDashPattern([0.4, 0.8], 0); doc.setDrawColor(240, 170, 160);
+        us.forEach(u => doc.line(X(u), y + 1, X(u), py)); doc.setLineDashPattern([], 0);
+      }
+      if (vs.length) {
+        const x = px + pw + 6;
+        doc.setDrawColor(...RED); doc.line(x, Y(0), x, Y(vs[vs.length - 1])); doc.circle(x, Y(0), 0.7, 'S');
+        font(6.5, 'normal', RED);
+        let lastY = 1e9, out = false;                                // quote vicine: sfalsate in fuori
+        vs.forEach(v => {
+          out = lastY - Y(v) < 3 ? !out : false; lastY = Y(v);
+          doc.line(x - 1, Y(v), x + 1, Y(v));
+          if (out) doc.line(x + 1, Y(v), x + 10, Y(v));
+          T_(fmt(v), x + 1.6 + (out ? 9.5 : 0), Y(v) + 0.9);
+        });
+        doc.setLineDashPattern([0.4, 0.8], 0); doc.setDrawColor(240, 170, 160);
+        vs.forEach(v => doc.line(px + pw, Y(v), x - 1, Y(v))); doc.setLineDashPattern([], 0);
+      }
+      return N;
+    }
+
+    // --- tavola 1: riepilogo ---
+    font(18, 'bold'); T_('Distinta di taglio e montaggio', 14, 20);
+    font(9, 'normal', GREYC); T_('Espositore calze neve su pallet EPAL 1  ·  quote in mm', 14, 25.5);
+    doc.addImage(shots.all, 'JPEG', 14, 30, 120, 90); doc.setDrawColor(200, 204, 201); doc.setLineWidth(0.2); doc.rect(14, 30, 120, 90);
+    const ch = clearH(), plan = `${L + 2 * sideX()} × ${W + (st.panels ? 2 * PT : 0)}`;
+    eyebrow('Configurazione', 146, 33);
+    const conf = [
+      ['Pallet EPAL 1', `${st.n} × 1200 × 800 × 144  ·  h ${st.n * H}`],
+      ['Scaffale', st.shelfOn ? `h ${st.hs}  ·  ${st.levels} livelli${st.top ? ' + piano superiore' : ''}` : 'no'],
+      ['Vani fronte', st.shelfOn ? `${FRONT_N * st.levels} × ${fmt(VF)} × ${fmt(DEPTH)} × h ${fmt(ch)}` : '-'],
+      ['Vani retro', st.shelfOn ? `${BACK_N * st.levels} × ${fmt(VB)} × ${fmt(DEPTH)} × h ${fmt(ch)}` : '-'],
+      ['Insegna', st.sign ? `${L} × ${st.signH}${st.tags ? '  ·  5 cartelli A4' : ''}` : 'no'],
+      ['Ingombro', `${plan}  ·  h ${fmt(totalH())} da terra`],
+    ];
+    conf.forEach(([k, v], i) => { font(8, 'normal', GREYC); T_(k, 146, 39 + i * 5); font(8, 'bold'); T_(v, 176, 39 + i * 5); });
+    eyebrow('Ferramenta', 146, 74);
+    const hw = new Map();
+    for (const sp of steps) for (const sc of sp.screws) hw.set(sc.t, (hw.get(sc.t) || 0) + 1);
+    const hwRows = [
+      ...(st.nBr ? [['Squadretta a L 40 × 40 × 20, sp. 2', st.nBr]] : []),
+      ...[...hw].map(([tp, q]) => [`${tp.name} ${tp.size}`, q]),
+      ...(st.sign ? [['Profilo a U alluminio 1200, luce 10', 1]] : []),
+      ...(st.sign && st.tags ? [['Cartello prezzo A4 (S, M, L, XL, XXL)', 5]] : []),
+    ];
+    hwRows.forEach(([k, q], i) => { font(7.5); T_(k, 146, 80 + i * 4.6); font(7.5, 'bold'); T_(String(q), 284, 80 + i * 4.6, { align: 'right' }); });
+
+    eyebrow('Pannelli da tagliare', 14, 128);
+    const cols = [14, 23, 94, 104, 140, 153, 236, 282];
+    const head = ['Cod.', 'Pezzo', 'Q.tà', 'Dimensioni', 'Sp.', 'Materiale', 'm² totali', 'Tavola'];
+    let y = 134;
+    doc.setFillColor(...INKC); doc.rect(14, y - 3.8, 270, 5.4, 'F');
+    font(7.5, 'bold', [255, 255, 255]);
+    head.forEach((h, i) => T_(h, i === 2 || i >= 6 ? cols[i] + (i === 2 ? 4 : 0) : cols[i], y, i === 2 || i >= 6 ? { align: 'right' } : undefined));
+    const byMat = new Map();
+    types.forEach((t, i) => {
+      y += 5.6;
+      if (i % 2) { doc.setFillColor(242, 243, 241); doc.rect(14, y - 3.9, 270, 5.6, 'F'); }
+      const area = t.w * t.h * t.qty / 1e6;
+      byMat.set(t.mat, (byMat.get(t.mat) || 0) + area);
+      doc.setFillColor(...ORG); doc.rect(14, y - 3.3, 5, 4.4, 'F');
+      font(8, 'bold', [255, 255, 255]); T_(t.code, 16.5, y, { align: 'center' });
+      font(8, 'bold'); T_(t.name, cols[1], y); T_(String(t.qty), cols[2] + 4, y, { align: 'right' });
+      font(8); T_(`${fmt(t.w)} × ${fmt(t.h)}`, cols[3], y); T_(String(t.t), cols[4], y); T_(t.mat, cols[5], y);
+      T_(area.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), cols[6], y, { align: 'right' });
+      T_(String(i + 2), cols[7], y, { align: 'right' });
+    });
+    y += 8; font(7.5, 'bold', GREYC); T_('Totale per materiale (senza sfrido)', 14, y);
+    [...byMat].forEach(([m, a], j) => {
+      font(7.5); T_(m, 70, y + j * 4.4);
+      font(7.5, 'bold'); T_(`${a.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²`, 150, y + j * 4.4, { align: 'right' });
+    });
+    sheet(1, null);
+
+    // --- una tavola per tipo di pannello ---
+    types.forEach((t, i) => {
+      doc.addPage();
+      const N = drawPanel(t, { x: 10, y: 28, w: 182, h: 168 });
+      doc.setFillColor(...ORG); doc.rect(14, 12, 11, 11, 'F');
+      font(15, 'bold', [255, 255, 255]); T_(t.code, 19.5, 20.2, { align: 'center' });
+      font(16, 'bold'); T_(t.name, 29, 18.2);
+      font(8.5, 'normal', GREYC); T_(`${fmt(t.w)} × ${fmt(t.h)} × ${t.t} mm  ·  ${t.mat}`, 29, 23);
+      // posizione nell'espositore, in alto a destra
+      doc.addImage(shots[t.part], 'JPEG', 200, 12, 84, 63);
+      doc.setDrawColor(200, 204, 201); doc.setLineWidth(0.2); doc.rect(200, 12, 84, 63);
+      font(6.5, 'bold', GREYC); T_('POSIZIONE', 202, 16);
+      // quantità
+      font(30, 'bold', ORG); T_(`× ${t.qty}`, 200, 92);
+      font(8, 'normal', GREYC); T_(t.qty === 1 ? 'pezzo da tagliare' : 'pezzi uguali da tagliare', 200, 97.5);
+      const area = t.w * t.h / 1e6;
+      [['Dimensioni', `${fmt(t.w)} × ${fmt(t.h)} mm`], ['Spessore', `${t.t} mm`], ['Materiale', t.mat],
+       ['Superficie', `${area.toLocaleString('it-IT', { maximumFractionDigits: 3 })} m² cad.  ·  ${(area * t.qty).toLocaleString('it-IT', { maximumFractionDigits: 3 })} m² tot.`]]
+        .forEach(([k, v], j) => { font(7.5, 'normal', GREYC); T_(k, 200, 105 + j * 4.8); font(7.5, 'bold'); T_(v, 220, 105 + j * 4.8); });
+      // legenda fori presenti
+      let ly = 130;
+      const kinds = [...new Set(t.face.map(o => o.kind))].map(k => [k, t.face.filter(o => o.kind === k).length]);
+      if (t.edge.length) kinds.push(['edge', t.edge.length]);
+      if (kinds.length) {
+        eyebrow('Fori', 200, ly); ly += 5;
+        kinds.forEach(([k, q]) => {
+          symbol(k, 202.5, ly - 1);
+          font(7); T_(`${q} × ${HOLES[k]}`, 206, ly, { maxWidth: 82 }); ly += 5;
+        });
+      }
+      font(7, 'normal', INKC);
+      const lines = doc.splitTextToSize(pdfTxt(t.note), 84);
+      doc.text(lines, 200, Math.max(ly + 2, 150));
+      sheet(i + 2, N);
+    });
+
+    // --- ultima tavola: sequenza di montaggio ---
+    doc.addPage();
+    font(18, 'bold'); T_('Sequenza di montaggio', 14, 20);
+    font(8.5, 'normal', GREYC);
+    T_('Attrezzi: avvitatore, punta a gradino per confirmat (Ø5/Ø7), punte Ø2,5 e Ø4 con svasatore, metro, squadra, 2 morsetti.', 14, 26);
+    let sy = 36;
+    steps.forEach((sp, i) => {
+      const lines = doc.splitTextToSize(pdfTxt(describe(i)), 168);
+      doc.setFillColor(...ORG); doc.circle(18, sy - 1.3, 3.2, 'F');
+      font(8.5, 'bold', [255, 255, 255]); T_(String(i + 1), 18, sy, { align: 'center' });
+      font(9, 'normal'); doc.text(lines, 25, sy);
+      sy += lines.length * 4.3 + 3.2;
+    });
+    font(7.5, 'normal', GREYC);
+    doc.text(doc.splitTextToSize("Consigli: preforare con punta Ø2,5 tutte le viti delle squadrette per non aprire il bordo del pannello. Montare a vista libera dalla spina verso l'esterno; i fianchi per ultimi tengono in squadra tutto il corpo. Nel configuratore, il montaggio passo-passo mostra ogni vite fuori dal foro con la linea fino al punto d'ingresso.", 168), 25, Math.min(sy + 4, 176));
+    sheet(total, null);
+    return doc;
+  }
+
+  async function exportPdf() {
+    const btn = $('pdf-btn'), msg = $('pdf-msg');
+    if (!window.jspdf) { msg.textContent = 'La libreria PDF non si è caricata: ricarica la pagina e riprova.'; return; }
+    btn.disabled = true; msg.textContent = 'Preparo il PDF…';
+    try {
+      const doc = buildPdf();
+      const name = `espositore-calze-neve-taglio-${st.n}pallet-h${st.hs}.pdf`;
+      if (window.claude && window.claude.use) {
+        const dl = await window.claude.use('downloads');
+        if (!dl) { msg.textContent = 'Qui il download non è disponibile. Apri il configuratore pubblicato (Vercel) per scaricare il PDF.'; }
+        else { await dl.save({ filename: name, data: doc.output('blob') }); msg.textContent = 'PDF salvato.'; }
+      } else { doc.save(name); msg.textContent = 'PDF scaricato.'; }
+    } catch (e) {
+      msg.textContent = e && e.code === 'declined' ? 'Download annullato.'
+        : 'Non sono riuscito a creare il PDF (' + ((e && (e.code || e.message)) || 'errore') + ').';
+    }
+    btn.disabled = false;
+  }
 
   // --- divisore tra vista e pannello (desktop): trascina, frecce, doppio clic ripristina ---
   (() => {

@@ -11,6 +11,8 @@ Apri `index.html` nel browser: non serve build.
 - Pannelli 6 mm sui lati lunghi.
 - Insegna in forex 10 mm su profilo a U di alluminio, altezza regolabile al centimetro (default 32 cm: i cartelli A4 appoggiati sul profilo non sporgono).
 - Montaggio passo-passo, vista esplosa, figura umana di 175 cm di riferimento.
+- Pannelli in OSB di pioppo verniciato antracite (texture OSB procedurale ripetibile).
+- Pulsante **Scarica il PDF di taglio**: riepilogo, una tavola quotata per tipo di pannello (fori, quantità, posizione 3D) e sequenza di montaggio.
 - Distinta pezzi e ferramenta (confirmat 7 × 50, squadrette 40 × 40, viti) aggiornata dai parametri.
 
 ## File
