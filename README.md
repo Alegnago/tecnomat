@@ -18,3 +18,6 @@ Apri `index.html` nel browser: non serve build.
 - `blender/pallet_epal.py` — script Blender che genera 3 pallet EPAL quotati (`Blender -b -P blender/pallet_epal.py -- <cartella>`).
 - `blender/pallet_epal_x3.blend` — modello generato.
 - `render/` — render isometrico e frontale dei pallet.
+- `cartello.js` — disegno del cartello prezzo A4 (usato anche nel 3D, copiato in linea in `index.html`).
+- `cartelli.html` — pagina di stampa dei 5 cartelli (S, M, L, XL, XXL).
+- `stampa/cartelli-calze-neve-A4.pdf` — PDF A4 pronto da stampare, 5 pagine.

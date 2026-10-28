@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Cartelli prezzo calze neve A4</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@700&family=Anton&family=Montserrat:wght@700&display=block">
+<style>
+  @page { size: A4; margin: 0; }
+  html, body { margin: 0; background: #888; }
+  canvas { display: block; width: 210mm; height: 297mm; margin: 0 auto; page-break-after: always; break-after: page; }
+  canvas:last-child { page-break-after: auto; break-after: auto; }
+  @media screen { canvas { margin: 16px auto; box-shadow: 0 2px 10px rgba(0,0,0,.3); } }
+</style>
+</head>
+<body>
+<script src="cartello.js"></script>
+<script>
+  const PX_MM = 12;   // ≈ 300 dpi
+  Promise.all(['700 100px "Amatic SC"', '100px Anton', '700 100px Montserrat'].map(f => document.fonts.load(f)))
+    .then(() => document.fonts.ready)
+    .then(() => {
+      for (const o of CARTELLI) {
+        const cv = document.createElement('canvas');
+        cv.width = 210 * PX_MM; cv.height = 297 * PX_MM;
+        drawCartello(cv.getContext('2d'), cv.width, cv.height, o);
+        document.body.appendChild(cv);
+      }
+      document.title = 'pronto';
+    });
+</script>
+</body>
+</html>
