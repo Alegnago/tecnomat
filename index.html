@@ -72,7 +72,7 @@ body {
 .hint { position: absolute; right: 14px; top: 20px; font-size: 11px; color: var(--muted); }
 .stepbar {
   position: absolute; left: 12px; right: 12px; bottom: 12px; margin-inline: auto; max-width: 640px;
-  display: grid; grid-template-columns: 36px minmax(0, 1fr) 36px auto; gap: 10px; align-items: center;
+  display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; column-gap: 10px; row-gap: 4px; align-items: center;
   background: var(--sheet); border-radius: var(--r); padding: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.08), 0 0 0 1px var(--rule);
 }
 .stepbar button {
@@ -81,7 +81,10 @@ body {
 }
 .stepbar button:hover:not(:disabled) { background: #e6e9e7; }
 .stepbar button:disabled { opacity: .35; cursor: default; }
-.stepbar button.exit { font: 500 13px/1 var(--f-body); padding: 0 14px; }
+.stepbar #st-prev { grid-column: 1; grid-row: 1; }
+.stepbar-txt { grid-column: 2; grid-row: 1 / span 2; }
+.stepbar #st-next { grid-column: 3; grid-row: 1; width: 36px; justify-self: center; }
+.stepbar button.exit { grid-column: 3; grid-row: 2; height: 24px; font: 500 12px/1 var(--f-body); padding: 0 10px; justify-self: center; }
 .stepbar-txt { display: grid; gap: 2px; min-width: 0; }
 .stepbar-txt output { font: 600 11px/1.2 var(--f-body); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
 .stepbar-txt span { font-size: 13px; line-height: 1.35; }
@@ -524,7 +527,7 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
     uv.needsUpdate = true;
   }
   const M_STEEL = new THREE.MeshStandardMaterial({ color: 0xc2c7cc, metalness: 0.6, roughness: 0.35 });
-  const M_MAN = new THREE.MeshStandardMaterial({ color: 0xb4bcc3, roughness: 0.9 });
+  const M_MAN = new THREE.MeshStandardMaterial({ color: 0x7d868e, roughness: 0.95 });
   const edgeMat = new THREE.LineBasicMaterial({ transparent: true, opacity: 0.55 });
 
   // box in coordinate pallet (mm) → three (m), pianta centrata nell'origine
@@ -601,18 +604,31 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
   const MAN_DX = 1050, MAN_H = 1750;            // distanza asse figura dal lato corto (mm)
   const man = new THREE.Group(); scene.add(man);
   (() => {
-    // sagoma ritagliata su un piano (come le figure dei plastici): profilo in mm, spessore 5, alta 1750
-    const half = [[0, 880], [42, 470], [48, 45], [46, 0], [158, 0], [150, 42], [132, 470], [158, 900], [150, 1060],
-      [166, 1300], [190, 1140], [198, 880], [222, 832], [256, 872], [252, 1150], [230, 1395], [180, 1452],
-      [62, 1478], [52, 1535], [0, 1540]];
-    const pts = [...half, ...half.slice(1, -1).reverse().map(([x, y]) => [-x, y])];
-    const body = new THREE.Shape(pts.map(([x, y]) => new THREE.Vector2(x * MM, y * MM)));
-    const head = new THREE.Shape(); head.absarc(0, 1640 * MM, 106 * MM, 0, Math.PI * 2, false);
-    const g = new THREE.ExtrudeGeometry([body, head], { depth: 5 * MM, bevelEnabled: false, curveSegments: 24 });
+    // sagoma realistica ritagliata su un piano, monocolore: contorno frontale di una persona in piedi,
+    // braccia lungo i fianchi, leggero peso su una gamba. Punti in mm, alta 1750, spessore 5.
+    const right = [
+      [0, 1750], [44, 1744], [70, 1716], [79, 1672], [80, 1634], [72, 1586], [58, 1546], [40, 1522],
+      [47, 1497], [56, 1471], [112, 1455], [170, 1439], [206, 1417], [223, 1382], [231, 1300], [238, 1200],
+      [243, 1100], [248, 980], [250, 872], [259, 822], [256, 762], [241, 716], [223, 713], [210, 742],
+      [205, 802], [203, 872], [200, 982], [197, 1100], [190, 1200], [172, 1288], [158, 1236], [145, 1150],
+      [138, 1062], [160, 982], [178, 920], [172, 800], [160, 650], [152, 502], [156, 382], [136, 202],
+      [116, 96], [126, 50], [176, 20], [172, 2], [66, 2], [60, 40], [62, 96], [70, 252], [60, 382],
+      [45, 502], [35, 702], [12, 822], [0, 834],
+    ];
+    // lato sinistro: specchio con piccole differenze (gamba di carico più dritta, piede ruotato in fuori)
+    const left = right.slice(1, -1).reverse().map(([x, y]) => {
+      let nx = -x;
+      if (y < 520) nx -= 10 * (1 - y / 520);                 // gamba sinistra appena aperta
+      if (y < 60 && x > 100) nx -= 14;                       // punta del piede in fuori
+      if (y > 700 && y < 900 && x > 195) nx -= 6;            // mano un po' più staccata
+      return [nx, y];
+    });
+    const pts = [...right, ...left].map(([x, y]) => new THREE.Vector2(x * MM, y * MM));
+    const shape = new THREE.Shape(); shape.moveTo(pts[0].x, pts[0].y); shape.splineThru([...pts.slice(1), pts[0]]);
+    const g = new THREE.ExtrudeGeometry(shape, { depth: 5 * MM, bevelEnabled: false, curveSegments: 3 });
     g.translate(0, 0, -2.5 * MM);
     const m = new THREE.Mesh(g, M_MAN);
     m.castShadow = true;
-    m.add(new THREE.LineSegments(new THREE.EdgesGeometry(g, 30), new THREE.LineBasicMaterial({ color: 0x7d868e })));
     m.rotation.y = -0.35;                                                          // girata verso la vista iso
     man.add(m);
     man.position.set((L / 2 + MAN_DX) * MM, 0, 0);
