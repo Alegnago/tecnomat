@@ -1,0 +1,759 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Configuratore Espositore Pallet</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Solo tema chiaro, scelta voluta. Layout: tavola tecnica — vista 3D a tutto campo, cartiglio di controllo a destra (sotto su telefono). */
+:root {
+  --bg: #f3f5f4;
+  --sheet: #ffffff;
+  --canvas: #f4f6f5;
+  --ink: #1d2422;
+  --muted: #5b6662;
+  --rule: #c9cfcb;
+  --quote: #b3261e;
+  --edge: #9aa0a6;
+  --ground: #e9ecea;
+  --focus: #1f5fbf;
+  color-scheme: light;
+  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 14px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 16px; box-sizing: border-box;
+}
+.app { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; }
+.view {
+  position: relative; min-width: 0; min-height: 0; background: var(--canvas);
+  border: 1px solid var(--rule); border-radius: 4px; overflow: hidden;
+}
+#stage { position: absolute; inset: 0; }
+#stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+#labels { position: absolute; inset: 0; pointer-events: none; }
+.dim {
+  position: absolute; transform: translate(-50%, -50%);
+  font-family: var(--f-mono); font-size: 11px; font-weight: 500; color: var(--quote);
+  background: color-mix(in srgb, var(--canvas) 82%, transparent);
+  padding: 1px 4px; border-radius: 2px; white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.dim.tot { font-size: 13px; font-weight: 600; }
+.views { position: absolute; left: 12px; top: 12px; display: flex; gap: 4px; flex-wrap: wrap; }
+.views button {
+  font: 500 12px/1 var(--f-body); color: var(--ink); background: var(--sheet);
+  border: 1px solid var(--rule); border-radius: 3px; padding: 7px 10px; cursor: pointer;
+}
+.views button[aria-pressed="true"] { border-color: var(--ink); }
+.hint { position: absolute; left: 12px; bottom: 10px; font-size: 11px; color: var(--muted); }
+
+aside {
+  min-width: 0; background: var(--sheet); border: 1px solid var(--rule); border-radius: 4px;
+  display: flex; flex-direction: column; overflow: auto;
+}
+.block { padding: 16px; border-bottom: 1px solid var(--rule); display: grid; gap: 12px; }
+.block:last-child { border-bottom: 0; }
+.eyebrow { font: 600 11px/1 var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font: 700 28px/1 var(--f-display); letter-spacing: .01em; margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); margin: 0; font-size: 13px; }
+
+.stepper { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 8px; }
+.stepper button {
+  height: 44px; font: 600 22px/1 var(--f-mono); color: var(--ink); background: var(--bg);
+  border: 1px solid var(--rule); border-radius: 3px; cursor: pointer;
+}
+.stepper button:disabled { opacity: .35; cursor: default; }
+.count { text-align: center; }
+.count output { font: 700 44px/1 var(--f-display); font-variant-numeric: tabular-nums; display: block; }
+.count span { font-size: 12px; color: var(--muted); }
+.stepper.sm { grid-template-columns: 36px 1fr 36px; }
+.stepper.sm button { height: 36px; font-size: 18px; }
+.stepper.sm output { font-size: 30px; }
+input[type="range"] { width: 100%; accent-color: var(--quote); }
+.field { display: grid; gap: 6px; }
+.field-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.field-row label { font-size: 13px; }
+.num {
+  width: 84px; font: 500 14px var(--f-mono); color: var(--ink); background: var(--bg);
+  border: 1px solid var(--rule); border-radius: 3px; padding: 5px 6px; text-align: right;
+}
+
+.readout { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 0; }
+.readout div { background: var(--sheet); padding: 10px; display: grid; gap: 4px; min-width: 0; }
+.readout dt { font-size: 11px; color: var(--muted); }
+.readout dd { margin: 0; font: 500 17px/1.15 var(--f-mono); font-variant-numeric: tabular-nums; }
+.readout dd small { font-size: 11px; color: var(--muted); }
+.readout .wide { grid-column: 1 / -1; }
+.readout .wide dd.hl { color: var(--quote); font-size: 22px; }
+
+.toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; }
+.toggle input { accent-color: var(--quote); width: 16px; height: 16px; margin: 0; }
+
+.tbl { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th, td { text-align: left; padding: 5px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 500; color: var(--muted); font-size: 11px; }
+td.n, th.n { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; padding-left: 8px; white-space: nowrap; }
+.note { font-size: 11px; color: var(--muted); margin: 0; }
+.steps { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 12.5px; line-height: 1.4; }
+.steps li::marker { font-family: var(--f-mono); color: var(--muted); }
+.steps button { all: unset; cursor: pointer; display: block; color: var(--muted); border-radius: 2px; }
+.steps button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.steps li.done button { color: var(--ink); }
+.steps li.cur button { color: var(--ink); font-weight: 600; }
+.steps li.cur::marker { color: #e8701a; font-weight: 600; }
+details summary { cursor: pointer; font-size: 13px; }
+details[open] summary { margin-bottom: 8px; }
+
+button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+@media (max-width: 860px) {
+  html, body { height: auto; }
+  .app { grid-template-columns: 1fr; height: auto; }
+  .view { height: 62vh; min-height: 340px; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <section class="view" aria-label="Vista 3D espositore">
+    <div id="stage"></div>
+    <div id="labels"></div>
+    <div class="views" role="group" aria-label="Viste">
+      <button id="v-iso" data-view="iso" aria-pressed="true">Iso</button>
+      <button id="v-front" data-view="front" aria-pressed="false">Fronte 1200</button>
+      <button id="v-side" data-view="side" aria-pressed="false">Lato 800</button>
+      <button id="v-top" data-view="top" aria-pressed="false">Pianta</button>
+    </div>
+    <div class="hint">Trascina per ruotare · rotella o pizzico per zoom · tasto destro per spostare</div>
+  </section>
+
+  <aside>
+    <div class="block">
+      <span class="eyebrow">Tavola 01 · Espositore custodie neve</span>
+      <h1>Base pallet EPAL e scaffale</h1>
+      <p class="sub">EPAL 1 EN 13698-1 · pannelli legno 18 mm · quote in mm</p>
+    </div>
+
+    <div class="block">
+      <span class="eyebrow">Numero pallet</span>
+      <div class="stepper">
+        <button id="minus" aria-label="Togli un pallet">−</button>
+        <div class="count"><output id="count">3</output><span id="count-lbl">pallet</span></div>
+        <button id="plus" aria-label="Aggiungi un pallet">+</button>
+      </div>
+      <input type="range" id="range" min="1" max="12" step="1" value="3" aria-label="Numero pallet">
+      <label class="toggle"><input type="checkbox" id="panels-on" checked> Pannelli 6 mm antracite sui lati lunghi</label>
+      <p class="note">Lati lunghi chiusi del tutto. Sui lati corti scende il fianco da 18 mm dello scaffale e si ferma a 100 da terra, sopra le aperture forche (227,5 × 100).</p>
+    </div>
+
+    <div class="block">
+      <span class="eyebrow">Scaffale sopra i pallet</span>
+      <label class="toggle"><input type="checkbox" id="shelf-on" checked> Mostra scaffale</label>
+      <div class="field">
+        <div class="field-row"><label for="shelf-h">Altezza scaffale</label><input class="num" type="number" id="shelf-h-num" min="300" max="2000" step="10" value="800" aria-label="Altezza scaffale in mm"></div>
+        <input type="range" id="shelf-h" min="300" max="2000" step="10" value="800">
+      </div>
+      <div class="field">
+        <span style="font-size:13px">Livelli (ripiani)</span>
+        <div class="stepper sm">
+          <button id="lv-minus" aria-label="Togli un livello">−</button>
+          <div class="count"><output id="levels">2</output></div>
+          <button id="lv-plus" aria-label="Aggiungi un livello">+</button>
+        </div>
+      </div>
+      <label class="toggle"><input type="checkbox" id="shelf-top" checked> Piano di chiusura superiore</label>
+      <label class="toggle"><input type="checkbox" id="show-dims" checked> Mostra quote</label>
+      <p class="note">Pianta 1200 × 800 divisa in due da una spina centrale: 3 vani sul fronte, 2 sul retro.</p>
+    </div>
+
+    <div class="block">
+      <span class="eyebrow">Insegna sopra lo scaffale</span>
+      <label class="toggle"><input type="checkbox" id="sign-on" checked> Mostra insegna</label>
+      <div class="field-row"><label for="sign-h">Altezza foglio</label><span><input class="num" type="number" id="sign-h" min="5" max="100" step="1" value="30"> cm</span></div>
+      <p class="note">Foglio in forex grigio antracite da 10 mm, lungo 1200, centrato sopra la spina e parallelo al lato lungo. Si infila in un profilo a U di alluminio (luce 10) avvitato al piano superiore con 4 viti: nessun foro nel foglio, si sfila per cambiarlo.</p>
+    </div>
+
+    <div class="block">
+      <span class="eyebrow">Montaggio</span>
+      <div class="field">
+        <div class="field-row"><label for="explode">Vista esplosa</label><output id="ex-val" for="explode">0 %</output></div>
+        <input type="range" id="explode" min="0" max="100" step="1" value="0">
+      </div>
+      <label class="toggle"><input type="checkbox" id="man-on" checked> Figura umana 175 cm</label>
+      <span style="font-size:13px">Montaggio passo-passo</span>
+      <div class="stepper sm">
+        <button id="st-prev" aria-label="Passo precedente">‹</button>
+        <div class="count"><output id="st-lbl" style="font-size:20px">Tutto montato</output></div>
+        <button id="st-next" aria-label="Passo successivo">›</button>
+      </div>
+      <ol class="steps" id="steps"></ol>
+      <p class="note">Il pezzo arancione è quello da montare in quel passo. Clicca su un passo per saltarci. Quote nascoste durante esploso e passo-passo.</p>
+    </div>
+
+    <div class="block">
+      <span class="eyebrow">Ingombro e vani</span>
+      <dl class="readout">
+        <div class="wide"><dt>Altezza totale da terra</dt><dd class="hl" id="r-h">—</dd></div>
+        <div><dt>Pianta</dt><dd id="r-plan">1200 × 800 <small>mm</small></dd></div>
+        <div><dt>Altezza pallet</dt><dd id="r-ph">—</dd></div>
+        <div class="wide"><dt>Vano fronte (×3 per livello) L × P × H</dt><dd id="r-vf">—</dd></div>
+        <div class="wide"><dt>Vano retro (×2 per livello) L × P × H</dt><dd id="r-vb">—</dd></div>
+        <div><dt>Piano espositivo da terra</dt><dd id="r-z0">—</dd></div>
+        <div><dt>Vani totali</dt><dd id="r-nv">—</dd></div>
+      </dl>
+      <p class="note">Misure dei vani al netto dei pannelli (luce interna).</p>
+    </div>
+
+    <div class="block">
+      <span class="eyebrow">Distinta</span>
+      <details open>
+        <summary>Scaffale e pannelli di chiusura</summary>
+        <div class="tbl"><table>
+          <thead><tr><th>Pezzo</th><th class="n">Q.tà</th><th class="n">L × H × sp.</th></tr></thead>
+          <tbody id="cut"></tbody>
+        </table></div>
+      </details>
+      <details>
+        <summary>Pallet EPAL 1 · per singolo pallet</summary>
+        <div class="tbl"><table>
+          <thead><tr><th>Pezzo</th><th class="n">Q.tà</th><th class="n">L × P × H</th></tr></thead>
+          <tbody>
+            <tr><td>Tavola sup. larga</td><td class="n">3</td><td class="n">1200×145×22</td></tr>
+            <tr><td>Tavola sup. stretta</td><td class="n">2</td><td class="n">1200×100×22</td></tr>
+            <tr><td>Traversa</td><td class="n">3</td><td class="n">145×800×22</td></tr>
+            <tr><td>Blocco esterno</td><td class="n">6</td><td class="n">145×100×78</td></tr>
+            <tr><td>Blocco centrale</td><td class="n">3</td><td class="n">145×145×78</td></tr>
+            <tr><td>Tavola inf. esterna</td><td class="n">2</td><td class="n">1200×100×22</td></tr>
+            <tr><td>Tavola inf. centrale</td><td class="n">1</td><td class="n">1200×145×22</td></tr>
+          </tbody>
+        </table></div>
+        <p class="note">Altezza 22 + 78 + 22 + 22 = 144. Luce tra tavole superiori 41,25.</p>
+      </details>
+    </div>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(() => {
+  // --- Specifiche EPAL 1 (mm). Assi pallet: X = 1200, Y = 800 (Y = 800 è il fronte), Z = altezza ---
+  const L = 1200, W = 800, H = 144, T = 22, BH = 78, MAXN = 12;
+  const X_ROWS = [[0, 145], [527.5, 672.5], [1055, 1200]];
+  const Y_ROWS = [[0, 100], [327.5, 472.5], [700, 800]];
+  const gap = (W - (3 * 145 + 2 * 100)) / 4;
+  const TOP = []; { let y = 0; for (const w of [145, 100, 145, 100, 145]) { TOP.push([y, y + w]); y += w + gap; } }
+  // --- Scaffale ---
+  const S = 18;                         // spessore pannelli
+  // fianchi esterni al pallet (X −18…0 e 1200…1218), scendono sulla testata fino a FORK_H
+  const IN_L = L;                       // 1200 luce interna tra i fianchi
+  const DEPTH = (W - S) / 2;            // 391 profondità di ogni fila
+  const FRONT_N = 3, BACK_N = 2;
+  const VF = (IN_L - (FRONT_N - 1) * S) / FRONT_N;   // 388
+  const VB = (IN_L - (BACK_N - 1) * S) / BACK_N;     // 591
+  // --- Pannelli di chiusura ---
+  const PT = 6;                                          // spessore pannello nero
+  const FORK = [[100, 327.5], [472.5, 700]];            // aperture forche lato corto (Y), alte FORK_H
+  const FORK_H = 100;                                    // da terra al filo inferiore della traversa
+  const MM = 0.001;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const fmt = v => (Math.round(v * 10) / 10).toLocaleString('it-IT');
+
+  // --- scena ---
+  const stage = document.getElementById('stage');
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  stage.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(30, 1, 0.01, 100);
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; controls.dampingFactor = 0.12;
+  controls.maxPolarAngle = Math.PI / 2 - 0.02;
+
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xb8bab4, 0.95));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.75);
+  sun.position.set(2.5, 6, 3.5); sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  Object.assign(sun.shadow.camera, { left: -3, right: 3, top: 4, bottom: -3, near: 0.5, far: 20 });
+  sun.shadow.bias = -0.0005;
+  scene.add(sun);
+
+  const groundMat = new THREE.MeshStandardMaterial({ roughness: 1 });
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), groundMat);
+  ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+  const grid = new THREE.GridHelper(6, 30, 0x000000, 0x000000);
+  grid.material.transparent = true; grid.material.opacity = 0.08; grid.position.y = 0.0005; scene.add(grid);
+
+  // pallet legno naturale, scaffale grigio antracite
+  const M_DECK = new THREE.MeshStandardMaterial({ color: 0xcfa874, roughness: 0.85 });
+  const M_BLOCK = new THREE.MeshStandardMaterial({ color: 0xa97e4f, roughness: 0.9 });
+  const M_PANEL = new THREE.MeshStandardMaterial({ color: 0x4a4d52, roughness: 0.7 });
+  const M_STEEL = new THREE.MeshStandardMaterial({ color: 0xc2c7cc, metalness: 0.6, roughness: 0.35 });
+  const M_MAN = new THREE.MeshStandardMaterial({ color: 0xa9b1b8, roughness: 0.9 });
+  const edgeMat = new THREE.LineBasicMaterial({ transparent: true, opacity: 0.55 });
+
+  // box in coordinate pallet (mm) → three (m), pianta centrata nell'origine
+  function box(x0, x1, y0, y1, z0, z1, mat, parent, noEdge) {
+    const g = new THREE.BoxGeometry((x1 - x0) * MM, (z1 - z0) * MM, (y1 - y0) * MM);
+    const m = new THREE.Mesh(g, mat);
+    m.position.set(((x0 + x1) / 2 - L / 2) * MM, ((z0 + z1) / 2) * MM, ((y0 + y1) / 2 - W / 2) * MM);
+    m.castShadow = m.receiveShadow = true;
+    if (!noEdge) m.add(new THREE.LineSegments(new THREE.EdgesGeometry(g), edgeMat));
+    parent.add(m);
+    return m;
+  }
+  // esploso: ogni pezzo ricorda posizione base e direzione di spostamento (m per esploso = 100 %)
+  const EX = 0.16;
+  const tag = (m, ex) => { m.userData.base = m.position.clone(); m.userData.ex = ex; return m; };
+  function applyEx(group, k) {
+    for (const m of group.children) if (m.userData.base) m.position.copy(m.userData.base).addScaledVector(m.userData.ex, k);
+  }
+  const disposeGroup = g => g.traverse(o => o.geometry && o.geometry.dispose());
+
+  function makePallet() {
+    const p = new THREE.Group();
+    for (const [y0, y1] of Y_ROWS) box(0, L, y0, y1, 0, T, M_DECK, p);                 // 3 tavole inferiori
+    for (const [x0, x1] of X_ROWS) for (const [y0, y1] of Y_ROWS)
+      box(x0, x1, y0, y1, T, T + BH, M_BLOCK, p);                                       // 9 blocchi
+    for (const [x0, x1] of X_ROWS) box(x0, x1, 0, W, T + BH, 2 * T + BH, M_DECK, p);   // 3 traverse
+    for (const [y0, y1] of TOP) box(0, L, y0, y1, 2 * T + BH, H, M_DECK, p);           // 5 tavole superiori
+    return p;
+  }
+
+  const stack = new THREE.Group(); scene.add(stack);
+  const pallets = [];
+  const shelf = new THREE.Group(); scene.add(shelf);
+  const panels = new THREE.Group(); scene.add(panels);
+
+  // --- stato ---
+  const st = { n: 0, shelfOn: true, hs: 800, levels: 2, top: true, panels: true, ex: 0, man: true, nBr: 0,
+               sign: true, signH: 300, step: 0 };
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+
+  // Pannello estruso: profilo (u, v) in mm, spessore lungo l'asse locale z
+  function slab(pts, mesh) {
+    const s = new THREE.Shape(pts.map(([u, v]) => new THREE.Vector2(u * MM, v * MM)));
+    const g = new THREE.ExtrudeGeometry(s, { depth: PT * MM, bevelEnabled: false });
+    const m = new THREE.Mesh(g, M_PANEL);
+    m.castShadow = m.receiveShadow = true;
+    m.add(new THREE.LineSegments(new THREE.EdgesGeometry(g), edgeMat));
+    panels.add(m); return m;
+  }
+
+  // Pannelli 6 mm (antracite come lo scaffale) solo sui lati lunghi: coprono anche le teste dei fianchi; i lati corti li chiude il fianco
+  const sideX = () => (st.shelfOn ? S : 0);
+  function buildPanels() {
+    disposeGroup(panels); panels.clear();
+    if (!st.panels) return;
+    const h = st.n * H;
+    const sx = sideX(), long = [[-sx, 0], [L + sx, 0], [L + sx, h], [-sx, h]];
+    const sP = addStep(`Avvita i pannelli da 6 mm sui lati lunghi, ${3 * st.n} viti per lato nei blocchi dei pallet: coprono i bordi dei fianchi e legano i pallet tra loro.`);
+    for (const y of [-PT, W]) {                      // piano XZ, estrusione verso +Y
+      const m = slab(long);
+      m.position.set(-L / 2 * MM, 0, (y - W / 2) * MM);
+      stp(tag(m, V(0, 0, (y < 0 ? -1 : 1) * EX * 2.2)), sP);
+    }
+  }
+
+  // Figura umana di riferimento, 1750 mm, a destra del lato corto
+  const MAN_DX = 1050, MAN_H = 1750;            // distanza asse figura dal lato corto (mm)
+  const man = new THREE.Group(); scene.add(man);
+  (() => {
+    const part = (geo, x, y, z, sx = 1, sz = 1) => {
+      const m = new THREE.Mesh(geo, M_MAN); m.position.set(x * MM, y * MM, z * MM);
+      m.scale.set(sx, 1, sz); m.castShadow = true; man.add(m);
+    };
+    const cyl = (rt, rb, h) => new THREE.CylinderGeometry(rt * MM, rb * MM, h * MM, 20);
+    for (const sx of [-1, 1]) {
+      part(cyl(62, 50, 860), sx * 95, 430, 0);                          // gamba
+      part(new THREE.SphereGeometry(55 * MM, 16, 12), sx * 95, 25, 30, 1, 1.6); // piede
+      part(cyl(44, 36, 640), sx * 245, 1130, 0);                        // braccio
+    }
+    part(cyl(195, 160, 620), 0, 1160, 0, 1, 0.55);                      // busto
+    part(cyl(50, 55, 90), 0, 1500, 0);                                  // collo
+    part(new THREE.SphereGeometry(112 * MM, 24, 18), 0, 1636, 0, 0.9, 1); // testa → 1748
+    man.position.set((L / 2 + MAN_DX) * MM, 0, 0);
+  })();
+
+  // Insegna: foglio forex 10 mm infilato in un profilo a U di alluminio avvitato al piano superiore
+  const SIGN_T = 10, U = { w: 14, h: 15, t: 2 };
+  const signG = new THREE.Group(); scene.add(signG);
+  const M_ALU = new THREE.MeshStandardMaterial({ color: 0xd5d9dd, metalness: 0.7, roughness: 0.3 });
+  const signBase = () => st.n * H + (st.shelfOn ? st.hs : 0);
+  const totalH = () => signBase() + (st.sign ? U.t + st.signH : 0);
+
+
+  function buildSign() {
+    disposeGroup(signG); signG.clear();
+    if (!st.sign) return;
+    const zb = signBase(), yc = W / 2;
+    const e = V(0, EX * 0.5, 0), es = V(0, EX * 1.6, 0);
+    const sS = addStep('Avvita il profilo a U sul piano superiore con 4 viti 3,5 × 20 e infila il foglio.');
+    tag(box(0, L, yc - U.w / 2, yc + U.w / 2, zb, zb + U.t, M_ALU, signG, true), e).userData.step = sS;          // fondo U
+    tag(box(0, L, yc - U.w / 2, yc - U.w / 2 + U.t, zb, zb + U.h, M_ALU, signG, true), e).userData.step = sS;    // aletta
+    tag(box(0, L, yc + U.w / 2 - U.t, yc + U.w / 2, zb, zb + U.h, M_ALU, signG, true), e).userData.step = sS;    // aletta
+    const g = new THREE.BoxGeometry(L * MM, st.signH * MM, SIGN_T * MM);
+    const m = new THREE.Mesh(g, M_PANEL);
+    m.position.set(0, (zb + U.t + st.signH / 2) * MM, 0);
+    m.castShadow = m.receiveShadow = true;
+    m.add(new THREE.LineSegments(new THREE.EdgesGeometry(g), edgeMat));
+    signG.add(m); stp(tag(m, es), sS);
+  }
+
+  // passi di montaggio: ogni pezzo porta userData.step (indice in steps)
+  let steps = [];
+  const addStep = text => steps.push(text) - 1;
+  const stp = (m, s) => { m.userData.step = s; return m; };
+
+  // squadretta a L nello spigolo interno c {x,y,z} (mm): ala orizzontale verso dir ('x+','x-','y+','y-'),
+  // ala verticale sopra (vz = 1) o sotto (vz = -1) il piano
+  const BR = { leg: 40, w: 20, t: 2 };
+  function bracket(c, dir, vz, ex, s) {
+    const ax = dir[0], sg = dir[1] === '+' ? 1 : -1, wAx = ax === 'x' ? 'y' : 'x';
+    const r = (a, b) => [Math.min(a, b), Math.max(a, b)];
+    const wr = [c[wAx] - BR.w / 2, c[wAx] + BR.w / 2];
+    for (const p of [
+      { [ax]: r(c[ax], c[ax] + sg * BR.leg), [wAx]: wr, z: r(c.z, c.z + vz * BR.t) },
+      { [ax]: r(c[ax], c[ax] + sg * BR.t), [wAx]: wr, z: r(c.z, c.z + vz * BR.leg) },
+    ]) stp(tag(box(p.x[0], p.x[1], p.y[0], p.y[1], p.z[0], p.z[1], M_STEEL, shelf, true), ex), s);
+    st.nBr++;
+  }
+  // luce verticale di ogni livello
+  const clearH = () => (st.hs - st.levels * S - (st.top ? S : 0)) / st.levels;
+  const minHs = lv => lv * (S + 60) + S;   // almeno 60 mm di luce per livello
+
+  // Scaffale: fianchi a tutta altezza, ripiani tra i fianchi, spina centrale e divisori per livello
+  // Montaggio rapido: confirmat 7×50 passanti dove si arriva da fuori (fianchi → ripiani,
+  // ripiano sopra → teste di spina e divisori); squadretta solo al piede dei pezzi interni.
+  const CF_SIDE = 3, CF_SPINE = 4, CF_DIV = 2;
+  function buildShelf() {
+    disposeGroup(shelf); shelf.clear(); st.nBr = 0; st.nCf = 0;
+    if (!st.shelfOn) return;
+    const z0 = st.n * H, ch = clearH();
+    const sides = [
+      tag(box(-S, 0, 0, W, FORK_H, z0 + st.hs, M_PANEL, shelf), V(-EX * 1.8, 0, 0)),          // fianco sx
+      tag(box(L, L + S, 0, W, FORK_H, z0 + st.hs, M_PANEL, shelf), V(EX * 1.8, 0, 0)),       // fianco dx
+    ];
+    const yF = DEPTH + S + DEPTH / 2, yB = DEPTH / 2;
+    const nDiv = FRONT_N - 1 + BACK_N - 1, cfTop = CF_SPINE + CF_DIV * nDiv;
+    let sRip = addStep('Appoggia il fondo 1200 × 800 sul pallet in alto e avvitalo con 8 viti 4 × 50.');
+    for (let i = 0; i < st.levels; i++) {
+      const zb = z0 + i * (S + ch), zc0 = zb + S, zc1 = zc0 + ch;
+      const hasTop = i < st.levels - 1 || st.top;
+      const e = V(0, i * EX * 1.6, 0), ev = V(0, i * EX * 1.6 + EX * 0.7, 0);
+      stp(tag(box(0, L, 0, W, zb, zb + S, M_PANEL, shelf), e), sRip);                  // ripiano
+      st.nCf += 2 * CF_SIDE;                                                           // fianchi → ripiano
+      const sLv = addStep(`Livello ${i + 1}: metti in piedi spina centrale e ${nDiv} divisori, fissa il piede di ognuno con una squadretta (${2 + nDiv} squadrette).`);
+      stp(tag(box(0, L, DEPTH, DEPTH + S, zc0, zc1, M_PANEL, shelf), ev), sLv);        // spina centrale
+      bracket({ x: 1.5 * VF + S, y: DEPTH + S, z: zc0 }, 'y+', 1, ev, sLv);           // piede spina, lato fronte
+      bracket({ x: VB / 2, y: DEPTH, z: zc0 }, 'y-', 1, ev, sLv);                     // piede spina, lato retro
+      if (hasTop) st.nCf += CF_SPINE;
+      for (let k = 1; k < FRONT_N; k++) {                                              // divisori fronte (Y alta)
+        const x = k * VF + (k - 1) * S, ed = ev.clone().add(V(0, 0, EX));
+        stp(tag(box(x, x + S, DEPTH + S, W, zc0, zc1, M_PANEL, shelf), ed), sLv);
+        bracket({ x: x + S, y: yF, z: zc0 }, 'x+', 1, ed, sLv);
+        if (hasTop) st.nCf += CF_DIV;
+      }
+      for (let k = 1; k < BACK_N; k++) {                                               // divisori retro
+        const x = k * VB + (k - 1) * S, ed = ev.clone().add(V(0, 0, -EX));
+        stp(tag(box(x, x + S, 0, DEPTH, zc0, zc1, M_PANEL, shelf), ed), sLv);
+        bracket({ x: x + S, y: yB, z: zc0 }, 'x+', 1, ed, sLv);
+        if (hasTop) st.nCf += CF_DIV;
+      }
+      if (i < st.levels - 1) sRip = addStep(`Appoggia il ripiano ${i + 2} e avvitalo dall'alto con ${cfTop} confirmat nelle teste di spina e divisori.`);
+    }
+    if (st.top) {
+      const zt = z0 + st.hs - S, e = V(0, st.levels * EX * 1.6 + EX, 0);
+      const sTop = addStep(`Chiudi con il piano superiore, avvitato dall'alto con ${cfTop} confirmat nelle teste di spina e divisori.`);
+      stp(tag(box(0, L, 0, W, zt, zt + S, M_PANEL, shelf), e), sTop);                 // piano superiore
+      st.nCf += 2 * CF_SIDE;
+    }
+    const sSide = addStep(`Monta i due fianchi: ${2 * CF_SIDE * (st.levels + (st.top ? 1 : 0))} confirmat nei bordi di ripiani e piano, ${6 * st.n} viti 4 × 50 nelle testate dei pallet. Si fermano a 100 da terra, sopra le aperture forche.`);
+    sides.forEach(m => stp(m, sSide));
+  }
+
+  // --- quote ---
+  const dimGroup = new THREE.Group(); scene.add(dimGroup);
+  const dimMat = new THREE.LineBasicMaterial();
+  const labelsEl = document.getElementById('labels');
+  let labels = [];
+
+  const P = (x, y, z) => new THREE.Vector3((x - L / 2) * MM, z * MM, (y - W / 2) * MM); // pallet mm → three
+  function dim(a, b, off, text, cls) {
+    const pa = a.clone().add(off), pb = b.clone().add(off);
+    const d = b.clone().sub(a).normalize(), o = off.clone().normalize();
+    const pts = [];
+    const seg = (u, v) => pts.push(u.clone(), v.clone());
+    seg(a.clone().addScaledVector(o, 0.010), pa.clone().addScaledVector(o, 0.020));
+    seg(b.clone().addScaledVector(o, 0.010), pb.clone().addScaledVector(o, 0.020));
+    seg(pa.clone().addScaledVector(d, -0.020), pb.clone().addScaledVector(d, 0.020));
+    const t = d.clone().add(o).normalize().multiplyScalar(0.016);
+    seg(pa.clone().sub(t), pa.clone().add(t)); seg(pb.clone().sub(t), pb.clone().add(t));
+    dimGroup.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), dimMat));
+    const el = document.createElement('div');
+    el.className = 'dim' + (cls ? ' ' + cls : ''); el.textContent = text ?? fmt(a.distanceTo(b) / MM);
+    labelsEl.appendChild(el);
+    labels.push({ el, pos: pa.clone().add(pb).multiplyScalar(0.5) });
+  }
+
+  function buildDims() {
+    disposeGroup(dimGroup); dimGroup.clear(); labelsEl.textContent = ''; labels = [];
+    const n = st.n, z0 = n * H;
+    dim(P(0, W, 0), P(L, W, 0), V(0, 0, 0.18));                      // 1200
+    dim(P(L, W, 0), P(L, 0, 0), V(0.18, 0, 0));                      // 800
+    for (let i = 0; i < n; i++) dim(P(0, W, i * H), P(0, W, (i + 1) * H), V(-0.18, 0, 0));
+    const total = totalH();
+    if (n > 1) dim(P(0, W, 0), P(0, W, z0), V(-0.38, 0, 0), null, 'tot');
+    if (st.panels) {
+      // aperture forche sul lato corto destro: catena larghezze a terra + altezza
+      const xs = L + (st.shelfOn ? S : 0), ys = [0, ...FORK.flat(), W];
+      for (let i = 0; i < ys.length - 1; i++) dim(P(xs, ys[i + 1], 0), P(xs, ys[i], 0), V(0.08, 0, 0));
+      dim(P(xs, FORK[1][0], 0), P(xs, FORK[1][0], FORK_H), V(0, 0, -0.06), null);
+    }
+    if (st.shelfOn) {
+      dim(P(0, W, z0), P(0, W, z0 + st.hs), V(-0.18, 0, 0));        // altezza scaffale
+      const ch = clearH(), zt = z0 + st.hs;
+      // luci vani fronte e retro sul bordo inferiore dello scaffale (sopra resta libero per l'insegna)
+      for (let k = 0; k < FRONT_N; k++) { const x = k * (VF + S); dim(P(x, W, z0), P(x + VF, W, z0), V(0, 0, 0.10)); }
+      for (let k = 0; k < BACK_N; k++) { const x = k * (VB + S); dim(P(x, 0, z0), P(x + VB, 0, z0), V(0, 0, -0.10)); }
+      // profondità file sul fianco destro
+      dim(P(L + S, W, zt), P(L + S, DEPTH + S, zt), V(0.10, 0.04, 0));
+      dim(P(L + S, DEPTH, zt), P(L + S, 0, zt), V(0.10, 0.04, 0));
+      // luce verticale di ogni livello sullo spigolo frontale destro
+      for (let i = 0; i < st.levels; i++) {
+        const zc0 = z0 + i * (S + ch) + S;
+        dim(P(L + S, W, zc0), P(L + S, W, zc0 + ch), V(0.18, 0, 0));
+      }
+    }
+    if (st.sign) {                                                    // altezza foglio insegna
+      const zs = signBase() + U.t;
+      dim(P(0, W / 2, zs), P(0, W / 2, zs + st.signH), V(-0.18, 0, 0));
+    }
+    if (st.shelfOn || st.sign) dim(P(0, W, 0), P(0, W, total), V(-0.58, 0, 0), null, 'tot');  // totale da terra
+    if (st.man) dim(P(L + MAN_DX + 300, W / 2, 0), P(L + MAN_DX + 300, W / 2, MAN_H), V(0.12, 0, 0)); // figura
+  }
+
+  // --- distinta scaffale ---
+  function buildCut() {
+    const ch = clearH();
+    const rows = [
+      ['Fianco (da quota 100, copre la testata dei pallet)', 2, `${fmt(st.n * H + st.hs - FORK_H)} × ${W}`],
+      ['Ripiano', st.levels, `${IN_L} × ${W}`],
+      ...(st.top ? [['Piano superiore', 1, `${IN_L} × ${W}`]] : []),
+      ['Spina centrale', st.levels, `${IN_L} × ${fmt(ch)}`],
+      ['Divisorio fronte', st.levels * (FRONT_N - 1), `${DEPTH} × ${fmt(ch)}`],
+      ['Divisorio retro', st.levels * (BACK_N - 1), `${DEPTH} × ${fmt(ch)}`],
+    ].map(r => [r[0], r[1], r[2] + ' × 18']);
+    if (st.panels) rows.push(
+      ['Pannello 6 mm antracite, lato lungo', 2, `${L + 2 * sideX()} × ${fmt(st.n * H)} × ${PT}`]);
+    if (st.shelfOn) rows.push(
+      ['Vite confirmat (foro con punta a gradino 5/7 mm)', st.nCf, '7 × 50'],
+      ['Squadretta a L acciaio zincato, piede pezzi interni', st.nBr, '40 × 40 × 20 sp. 2'],
+      ['Vite truciolare testa svasata, squadrette', st.nBr * 4, '3,5 × 16'],
+      ['Vite truciolare, fondo scaffale → pallet', 8, '4 × 50']);
+    if (st.panels) rows.push(['Vite antracite, pannelli 6 mm → blocchi pallet', 6 * st.n, '3,5 × 30']);
+    if (st.shelfOn) rows.push(['Vite truciolare, fianchi → testate pallet', 6 * st.n, '4 × 50']);
+    if (st.sign) rows.push(
+      ['Foglio forex grigio antracite', 1, `${L} × ${fmt(st.signH)} × ${SIGN_T}`],
+      ['Profilo U alluminio, luce interna 10', 1, `${L} × ${U.h} × ${U.w}`],
+      ['Vite 3,5 × 20, profilo → piano superiore', 4, '3,5 × 20']);
+    $('cut').innerHTML = rows.map(r => `<tr><td>${r[0]}</td><td class="n">${r[1]}</td><td class="n">${r[2]}</td></tr>`).join('');
+  }
+
+  // --- aggiornamento ---
+  const drops = [];
+  function setCount(next) {
+    next = Math.max(1, Math.min(MAXN, next));
+    while (pallets.length < next) {
+      const p = makePallet(); const i = pallets.length;
+      p.userData.drop = 0;
+      if (!reduceMotion && st.n > 0) { p.userData.drop = 0.35; drops.push({ p, t0: performance.now() }); }
+      stack.add(p); pallets.push(p);
+    }
+    while (pallets.length > next) { const p = pallets.pop(); stack.remove(p); disposeGroup(p); }
+    st.n = next;
+    refresh(true);
+  }
+
+  function refresh(reframe) {
+    st.hs = Math.max(minHs(st.levels), st.hs);
+    steps = [];
+    addStep(`Impila i ${st.n} pallet allineati.`);
+    buildShelf(); buildPanels(); buildSign(); buildDims(); buildCut(); updateUI();
+    st.step = Math.min(st.step, steps.length);
+    renderSteps(); applyStep();
+    if (reframe) frame(currentView, true);
+  }
+
+  const $ = id => document.getElementById(id);
+  function updateUI() {
+    const n = st.n, ch = clearH();
+    $('count').textContent = n;
+    $('count-lbl').textContent = n === 1 ? 'pallet' : 'pallet impilati';
+    $('range').value = n;
+    $('minus').disabled = n <= 1; $('plus').disabled = n >= MAXN;
+    $('levels').textContent = st.levels;
+    $('lv-minus').disabled = st.levels <= 1; $('lv-plus').disabled = st.levels >= 6;
+    $('shelf-h').value = st.hs; $('shelf-h-num').value = st.hs;
+    $('shelf-h').min = minHs(st.levels);
+    const tot = totalH();
+    $('r-h').innerHTML = fmt(tot) + ' <small>mm</small>';
+    $('r-plan').innerHTML = `${L + 2 * sideX()} × ${W + (st.panels ? 2 * PT : 0)} <small>mm</small>`;
+    $('r-ph').innerHTML = fmt(n * H) + ' <small>mm</small>';
+    $('r-z0').innerHTML = fmt(n * H + (st.shelfOn ? S : 0)) + ' <small>mm</small>';
+    const on = st.shelfOn;
+    $('r-vf').innerHTML = on ? `${fmt(VF)} × ${fmt(DEPTH)} × ${fmt(ch)} <small>mm</small>` : '—';
+    $('r-vb').innerHTML = on ? `${fmt(VB)} × ${fmt(DEPTH)} × ${fmt(ch)} <small>mm</small>` : '—';
+    $('r-nv').textContent = on ? st.levels * (FRONT_N + BACK_N) : '—';
+    ['shelf-h', 'shelf-h-num', 'lv-minus', 'lv-plus', 'shelf-top'].forEach(id => { if (!on) $(id).disabled = true; else if (!id.startsWith('lv')) $(id).disabled = false; });
+  }
+
+  // --- passo-passo: mostra i pezzi fino al passo corrente, evidenzia quelli del passo ---
+  const hlCache = new Map();
+  const hlMat = mat => {
+    if (!hlCache.has(mat)) { const c = mat.clone(); c.color = new THREE.Color(0xe8701a); c.emissive = new THREE.Color(0xa84400); c.emissiveIntensity = 0.2; hlCache.set(mat, c); }
+    return hlCache.get(mat);
+  };
+  function applyStep() {
+    const cur = st.step - 1;                       // −1 = tutto montato
+    const set = (m, s) => {
+      if (!m.isMesh) return;
+      if (!m.userData.mat0) m.userData.mat0 = m.material;
+      m.visible = cur < 0 || s <= cur;
+      m.material = cur >= 0 && s === cur ? hlMat(m.userData.mat0) : m.userData.mat0;
+    };
+    for (const g of [shelf, panels, signG]) for (const m of g.children) set(m, m.userData.step ?? 0);
+    for (const p of pallets) p.children.forEach(m => set(m, 0));
+  }
+  function renderSteps() {
+    const list = $('steps');
+    list.textContent = '';
+    steps.forEach((t, i) => {
+      const li = document.createElement('li');
+      li.className = i + 1 === st.step ? 'cur' : (st.step && i + 1 < st.step ? 'done' : '');
+      const b = document.createElement('button'); b.textContent = t;
+      b.onclick = () => goStep(i + 1);
+      li.appendChild(b); list.appendChild(li);
+    });
+    $('st-lbl').textContent = st.step ? `Passo ${st.step} di ${steps.length}` : 'Tutto montato';
+    $('st-prev').disabled = st.step === 0;
+    $('st-next').disabled = st.step >= steps.length;
+  }
+  function goStep(k) { st.step = Math.max(0, Math.min(steps.length, k)); renderSteps(); applyStep(); }
+
+  // --- viste ---
+  let currentView = 'iso';
+  function frame(view, keepAngle) {
+    const h = Math.max(totalH() * MM, st.man ? 1.75 : 0);
+    const target = new THREE.Vector3(st.man ? 0.45 : -0.1, h / 2, 0);
+    const size = Math.max(st.man ? 3.2 : 2.0, h * 1.2);
+    const dist = size / (2 * Math.tan(camera.fov * Math.PI / 360)) * (camera.aspect < 1 ? 1.5 / camera.aspect : 1.15);
+    let dir;
+    if (keepAngle && view === currentView && controls.target.lengthSq() > 0) {
+      dir = camera.position.clone().sub(controls.target).normalize();
+    } else {
+      dir = { iso: V(0.75, 0.6, 1), front: V(0, 0, 1), side: V(-1, 0, 0), top: V(0, 1, 0.0001) }[view].normalize();
+    }
+    const tgt = view === 'top' && !keepAngle ? V(-0.1, h, 0) : target;
+    controls.target.copy(tgt);
+    camera.position.copy(tgt).addScaledVector(dir, view === 'top' && !keepAngle ? 2.0 / (2 * Math.tan(camera.fov * Math.PI / 360)) * 1.3 : dist);
+    controls.update();
+    currentView = view;
+    document.querySelectorAll('.views button').forEach(b => b.setAttribute('aria-pressed', b.dataset.view === view));
+  }
+
+  // --- tema ---
+  function applyTheme() {
+    scene.background = new THREE.Color(css('--canvas'));
+    groundMat.color.set(css('--ground'));
+    dimMat.color.set(css('--quote'));
+    edgeMat.color.set(css('--edge'));
+  }
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+  new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  function resize() {
+    const w = stage.clientWidth, h = stage.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resize).observe(stage);
+
+  // --- loop ---
+  const v = new THREE.Vector3();
+  function tick(now) {
+    for (let i = drops.length - 1; i >= 0; i--) {
+      const d = drops[i], k = Math.min(1, (now - d.t0) / 380);
+      d.p.userData.drop = 0.35 * Math.pow(1 - k, 3);
+      if (k >= 1) drops.splice(i, 1);
+    }
+    const ek = st.ex;
+    pallets.forEach((p, i) => { p.position.y = i * H * MM + p.userData.drop + i * EX * ek; });
+    const topDrop = pallets.length ? pallets[pallets.length - 1].userData.drop : 0;
+    shelf.position.y = topDrop + (st.n + 1) * EX * ek;
+    signG.position.y = shelf.position.y + (st.shelfOn ? (st.levels * 1.6 + 1.2) * EX * ek : 0);
+    applyEx(shelf, ek); applyEx(panels, ek); applyEx(signG, ek);
+    controls.update();
+    renderer.render(scene, camera);
+    const w = stage.clientWidth, h = stage.clientHeight;
+    const show = $('show-dims').checked && ek < 0.005 && !st.step;
+    dimGroup.visible = show;
+    for (const l of labels) {
+      v.copy(l.pos).project(camera);
+      const vis = show && v.z < 1 && Math.abs(v.x) < 1.2 && Math.abs(v.y) < 1.2;
+      l.el.hidden = !vis;
+      if (vis) { l.el.style.left = ((v.x + 1) / 2 * w) + 'px'; l.el.style.top = ((1 - v.y) / 2 * h) + 'px'; }
+    }
+    requestAnimationFrame(tick);
+  }
+
+  // --- eventi ---
+  $('minus').onclick = () => setCount(st.n - 1);
+  $('plus').onclick = () => setCount(st.n + 1);
+  $('range').oninput = e => setCount(+e.target.value);
+  $('sign-on').onchange = e => { st.sign = e.target.checked; $('sign-h').disabled = !st.sign; refresh(true); };
+  $('sign-h').oninput = e => {
+    const cm = Math.round(+e.target.value);
+    if (cm >= 5 && cm <= 100) { st.signH = cm * 10; refresh(false); }
+  };
+  $('sign-h').onchange = e => { const cm = Math.round(+e.target.value); e.target.value = Math.min(100, Math.max(5, cm || 30)); e.target.dispatchEvent(new Event('input')); frame(currentView, true); };
+  $('st-prev').onclick = () => goStep(st.step - 1);
+  $('st-next').onclick = () => goStep(st.step + 1);
+  $('explode').oninput = e => { st.ex = +e.target.value / 100; $('ex-val').textContent = e.target.value + ' %'; };
+  $('man-on').onchange = e => { st.man = man.visible = e.target.checked; refresh(true); };
+  $('panels-on').onchange = e => { st.panels = e.target.checked; refresh(false); };
+  $('shelf-on').onchange = e => { st.shelfOn = e.target.checked; refresh(true); };
+  $('shelf-top').onchange = e => { st.top = e.target.checked; refresh(false); };
+  $('shelf-h').oninput = e => { st.hs = +e.target.value; refresh(false); };
+  $('shelf-h-num').onchange = e => {
+    const val = Math.round(+e.target.value);
+    st.hs = Math.min(2000, Math.max(minHs(st.levels), isFinite(val) ? val : 800)); refresh(true);
+  };
+  $('lv-minus').onclick = () => { st.levels = Math.max(1, st.levels - 1); refresh(false); };
+  $('lv-plus').onclick = () => { st.levels = Math.min(6, st.levels + 1); refresh(true); };
+  document.querySelectorAll('.views button').forEach(b => b.onclick = () => frame(b.dataset.view, false));
+
+  applyTheme(); resize();
+  setCount(3);
+  frame('iso', false);
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
