@@ -468,7 +468,7 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
   const M_BLOCK = new THREE.MeshStandardMaterial({ color: 0xa97e4f, roughness: 0.9 });
   // OSB di pioppo verniciato antracite: texture procedurale ripetibile (scaglie orientate), usata come
   // tono leggero e come rilievo. Tile di OSB_TILE metri, UV dei pannelli in scala reale.
-  const OSB_TILE = 0.6;
+  const OSB_TILE = 0.3;
   const osbTex = (() => {
     const N = 1024, cv = document.createElement('canvas'); cv.width = cv.height = N;
     const x = cv.getContext('2d');
@@ -510,7 +510,7 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
     uv.needsUpdate = true;
   }
   const M_STEEL = new THREE.MeshStandardMaterial({ color: 0xc2c7cc, metalness: 0.6, roughness: 0.35 });
-  const M_MAN = new THREE.MeshStandardMaterial({ color: 0xa9b1b8, roughness: 0.9 });
+  const M_MAN = new THREE.MeshStandardMaterial({ color: 0xb4bcc3, roughness: 0.9 });
   const edgeMat = new THREE.LineBasicMaterial({ transparent: true, opacity: 0.55 });
 
   // box in coordinate pallet (mm) → three (m), pianta centrata nell'origine
@@ -587,29 +587,20 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
   const MAN_DX = 1050, MAN_H = 1750;            // distanza asse figura dal lato corto (mm)
   const man = new THREE.Group(); scene.add(man);
   (() => {
-    // omino stilizzato: aste sottili con giunture tonde, testa in cima a 1750
-    const R = 30, add = m => { m.castShadow = true; man.add(m); return m; };
-    const joint = (p, r = R) => add(new THREE.Mesh(new THREE.SphereGeometry(r * MM, 18, 12), M_MAN)).position.set(p[0] * MM, p[1] * MM, p[2] * MM);
-    const stick = (a, b, r = R) => {
-      const va = V(...a).multiplyScalar(MM), vb = V(...b).multiplyScalar(MM), d = vb.clone().sub(va);
-      const m = add(new THREE.Mesh(new THREE.CylinderGeometry(r * MM, r * MM, d.length(), 16), M_MAN));
-      m.position.copy(va).add(vb).multiplyScalar(0.5);
-      m.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize());
-      joint(a, r); joint(b, r);
-    };
-    const neck = [0, 1500, 0], pelvis = [0, 960, 0];
-    stick(neck, pelvis, 34);                                                       // busto
-    stick([-185, 1420, 0], [185, 1420, 0], 26);                                    // spalle
-    for (const sx of [-1, 1]) {
-      stick([sx * 185, 1420, 0], [sx * 235, 1150, 10]);                            // braccio
-      stick([sx * 235, 1150, 10], [sx * 255, 900, 40]);                            // avambraccio
-      joint([sx * 255, 900, 40], 38);                                              // mano
-      stick([0, 960, 0], [sx * 105, 930, 0], 30);                                  // bacino
-      stick([sx * 105, 930, 0], [sx * 115, 500, 15]);                              // coscia
-      stick([sx * 115, 500, 15], [sx * 120, 45, 0]);                               // gamba
-      stick([sx * 120, 45, 0], [sx * 125, 35, 110], 28);                           // piede
-    }
-    joint([0, 1630, 0], 118);                                                      // testa → 1748
+    // sagoma ritagliata su un piano (come le figure dei plastici): profilo in mm, spessore 5, alta 1750
+    const half = [[0, 880], [42, 470], [48, 45], [46, 0], [158, 0], [150, 42], [132, 470], [158, 900], [150, 1060],
+      [166, 1300], [190, 1140], [198, 880], [222, 832], [256, 872], [252, 1150], [230, 1395], [180, 1452],
+      [62, 1478], [52, 1535], [0, 1540]];
+    const pts = [...half, ...half.slice(1, -1).reverse().map(([x, y]) => [-x, y])];
+    const body = new THREE.Shape(pts.map(([x, y]) => new THREE.Vector2(x * MM, y * MM)));
+    const head = new THREE.Shape(); head.absarc(0, 1640 * MM, 106 * MM, 0, Math.PI * 2, false);
+    const g = new THREE.ExtrudeGeometry([body, head], { depth: 5 * MM, bevelEnabled: false, curveSegments: 24 });
+    g.translate(0, 0, -2.5 * MM);
+    const m = new THREE.Mesh(g, M_MAN);
+    m.castShadow = true;
+    m.add(new THREE.LineSegments(new THREE.EdgesGeometry(g, 30), new THREE.LineBasicMaterial({ color: 0x7d868e })));
+    m.rotation.y = -0.35;                                                          // girata verso la vista iso
+    man.add(m);
     man.position.set((L / 2 + MAN_DX) * MM, 0, 0);
   })();
 
