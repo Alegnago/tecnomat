@@ -113,5 +113,5 @@ function drawCartello(c, W, H, o) {
   }
 }
 const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
-  size: t, title: 'CALZE NEVE GRANDE', lines: ['OMOLOGATE', `MISURA ${t}`], price: '19.99',
+  size: t, title: 'CALZE NEVE', lines: ['OMOLOGATE', `MISURA ${t}`], price: '19.99',
 }));
