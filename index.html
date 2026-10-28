@@ -217,7 +217,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
       <span class="eyebrow">Insegna sopra lo scaffale</span>
       <label class="toggle"><input type="checkbox" id="sign-on" checked> Mostra insegna</label>
       <label class="toggle"><input type="checkbox" id="tags-on" checked> Cartelli prezzo A4 sopra ogni vano</label>
-      <div class="field-row"><label for="sign-h">Altezza foglio</label><span><input class="num" type="number" id="sign-h" min="5" max="100" step="1" value="30"> cm</span></div>
+      <div class="field-row"><label for="sign-h">Altezza foglio</label><span><input class="num" type="number" id="sign-h" min="5" max="100" step="1" value="32"> cm</span></div>
       <p class="note">Foglio in forex grigio antracite da 10 mm, lungo 1200, centrato sopra la spina e parallelo al lato lungo. Si infila in un profilo a U di alluminio (luce 10) avvitato al piano superiore con 4 viti: nessun foro nel foglio, si sfila per cambiarlo.</p>
     </div>
 
@@ -494,7 +494,7 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
 
   // --- stato ---
   const st = { n: 0, shelfOn: true, hs: 800, levels: 2, top: true, panels: true, ex: 0, man: true, nBr: 0,
-               sign: true, signH: 300, step: 0, tags: true };
+               sign: true, signH: 320, step: 0, tags: true };
   const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
   // Pannello estruso: profilo (u, v) in mm, spessore lungo l'asse locale z
@@ -1008,7 +1008,7 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
     const cm = Math.round(+e.target.value);
     if (cm >= 5 && cm <= 100) { st.signH = cm * 10; refresh(false); }
   };
-  $('sign-h').onchange = e => { const cm = Math.round(+e.target.value); e.target.value = Math.min(100, Math.max(5, cm || 30)); e.target.dispatchEvent(new Event('input')); frame(currentView, true); };
+  $('sign-h').onchange = e => { const cm = Math.round(+e.target.value); e.target.value = Math.min(100, Math.max(5, cm || 32)); e.target.dispatchEvent(new Event('input')); frame(currentView, true); };
   $('st-prev').onclick = () => goStep(st.step - 1);
   $('st-next').onclick = () => goStep(st.step + 1);
   $('st-exit').onclick = () => goStep(0);
