@@ -73,12 +73,13 @@ body {
 .stepdock { position: absolute; left: 12px; right: 12px; bottom: 12px; display: grid; justify-items: center; gap: 8px; }
 .stepbar {
   width: 100%; max-width: 640px; box-sizing: border-box;
-  display: grid; grid-template-columns: 36px minmax(0, 1fr) 36px; gap: 10px; align-items: center;
-  background: var(--sheet); border-radius: var(--r); padding: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.08), 0 0 0 1px var(--rule);
+  /* altezza fissa: la barra non cambia misura passando da un passo all'altro */
+  height: 104px; display: grid; grid-template-columns: 48px minmax(0, 1fr) 48px; gap: 12px; align-items: stretch;
+  background: var(--sheet); border-radius: var(--r); padding: 6px; box-shadow: 0 4px 16px rgba(0,0,0,.08), 0 0 0 1px var(--rule);
 }
 .stepbar button {
-  height: 36px; font: 500 18px/1 var(--f-body); color: var(--ink); background: var(--field);
-  border: 0; border-radius: 999px; cursor: pointer;
+  height: 100%; font: 400 22px/1 var(--f-body); color: var(--ink); background: var(--field);
+  border: 0; border-radius: 8px; cursor: pointer;
 }
 .stepbar button:hover:not(:disabled) { background: #e6e9e7; }
 .stepbar button:disabled { opacity: .35; cursor: default; }
@@ -87,9 +88,9 @@ body {
   border: 0; border-radius: 999px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.08), 0 0 0 1px var(--rule);
 }
 .stepdock .exit:hover { background: var(--field); }
-.stepbar-txt { display: grid; gap: 2px; min-width: 0; }
+.stepbar-txt { display: flex; flex-direction: column; justify-content: center; gap: 2px; min-width: 0; overflow: hidden; }
 .stepbar-txt output { font: 600 11px/1.2 var(--f-body); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
-.stepbar-txt span { font-size: 13px; line-height: 1.35; }
+.stepbar-txt span { font-size: 13px; line-height: 1.35; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }
 
 /* pannello comandi */
 aside {
@@ -165,7 +166,7 @@ details[open] summary::after { content: "−"; }
 /* call to action sempre visibile in fondo al pannello */
 .cta-wrap {
   position: sticky; bottom: 0; margin-top: auto; padding: 14px 18px 16px; display: grid; gap: 6px;
-  background: linear-gradient(to bottom, rgba(255,255,255,0), var(--sheet) 22%); border-top: 1px solid var(--rule);
+  background: var(--sheet); border-top: 1px solid var(--rule);
 }
 .cta-btn {
   height: 46px; font: 600 15px/1 var(--f-body); color: var(--accent-ink); background: var(--accent);
@@ -651,8 +652,8 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
     if (!st.sign) return;
     const zb = signBase(), yc = W / 2;
     const e = V(0, EX * 0.5, 0), es = V(0, EX * 1.6, 0);
-    const sS = addStep(`Metti in piedi il pannello dell'insegna sul piano superiore, in asse con la spina, e fissalo con ${SIGN_BR_F.length + SIGN_BR_B.length} squadrette a L (${SIGN_BR_F.length} sul fronte, ${SIGN_BR_B.length} sul retro).`
-      + (st.tags ? ' Poi attacca i 5 cartelli prezzo A4 a 1 cm dal bordo alto: S, M, L sul fronte, XL e XXL sul retro, ognuno sopra il suo vano.' : ''));
+    const sS = addStep("Fissa l'insegna sul piano superiore, in asse con la spina, con le squadrette tra i cartelli."
+      + (st.tags ? ' Cartelli A4 a 1 cm dal bordo alto: S, M, L davanti, XL e XXL dietro.' : ''));
     const g = new THREE.BoxGeometry(L * MM, st.signH * MM, SIGN_T * MM);
     osbUV(g, L * MM, st.signH * MM, SIGN_T * MM);
     const m = new THREE.Mesh(g, M_PANEL);
@@ -804,7 +805,7 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
       for (const y of [yB, yF]) sideJobs.push(s => bracket([0, y, zt], 'x+', 'z-', e, s), s => bracket([L, y, zt], 'x-', 'z-', e, s));
       cfSide.push(zt + S / 2);
     }
-    const sSide = addStep('Monta i due fianchi: confirmat nei bordi di ripiani e piano, viti nelle traverse dei pallet, squadrette negli angoli interni. Si fermano a 100 da terra, sopra le aperture forche.');
+    const sSide = addStep('Monta i fianchi, fino a 100 da terra: confirmat nei ripiani, viti nelle traverse dei pallet, squadrette negli angoli.');
     sides.forEach(m => part(stp(m, sSide), 'A'));
     sideJobs.forEach(j => j(sSide));
     for (const zc of cfSide) for (const y of [100, 400, 700]) {
@@ -1001,6 +1002,7 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
     });
     $('st-lbl').textContent = st.step ? `Passo ${st.step} di ${steps.length}` : `Montaggio · ${steps.length} passi`;
     $('st-text').textContent = st.step ? describe(st.step - 1) : 'Premi › per vedere il montaggio un passo alla volta.';
+    $('st-text').title = $('st-text').textContent;
     $('st-prev').disabled = st.step === 0;
     $('st-next').disabled = st.step >= steps.length;
     $('st-exit').hidden = !st.step;
