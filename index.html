@@ -67,7 +67,7 @@ body {
 .hint { position: absolute; left: 12px; top: 52px; font-size: 11px; color: var(--muted); }
 .stepbar {
   position: absolute; left: 12px; right: 12px; bottom: 12px; margin-inline: auto; max-width: 620px;
-  display: grid; grid-template-columns: 40px minmax(0, 1fr) 40px; gap: 10px; align-items: center;
+  display: grid; grid-template-columns: 40px minmax(0, 1fr) 40px auto; gap: 10px; align-items: center;
   background: var(--sheet); border: 1px solid var(--rule); border-radius: 4px; padding: 8px;
 }
 .stepbar button {
@@ -75,6 +75,7 @@ body {
   border: 1px solid var(--rule); border-radius: 3px; cursor: pointer;
 }
 .stepbar button:disabled { opacity: .35; cursor: default; }
+.stepbar button.exit { font: 500 13px/1 var(--f-body); padding: 0 14px; }
 .stepbar-txt { display: grid; gap: 2px; min-width: 0; }
 .stepbar-txt output { font: 600 11px/1.2 var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: #c25a10; }
 .stepbar-txt span { font-size: 13px; line-height: 1.35; }
@@ -167,6 +168,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
         <span id="st-text">Premi › per vedere il montaggio un passo alla volta.</span>
       </div>
       <button id="st-next" aria-label="Passo successivo">›</button>
+      <button id="st-exit" class="exit" hidden>Esci</button>
     </div>
   </section>
 
@@ -764,6 +766,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
     $('st-text').textContent = st.step ? describe(st.step - 1) : 'Premi › per vedere il montaggio un passo alla volta.';
     $('st-prev').disabled = st.step === 0;
     $('st-next').disabled = st.step >= steps.length;
+    $('st-exit').hidden = !st.step;
   }
   // inquadra i pezzi del passo corrente (stessa direzione di vista), o tutto a fine montaggio
   let curParts = [];
@@ -861,6 +864,8 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
   $('sign-h').onchange = e => { const cm = Math.round(+e.target.value); e.target.value = Math.min(100, Math.max(5, cm || 30)); e.target.dispatchEvent(new Event('input')); frame(currentView, true); };
   $('st-prev').onclick = () => goStep(st.step - 1);
   $('st-next').onclick = () => goStep(st.step + 1);
+  $('st-exit').onclick = () => goStep(0);
+  addEventListener('keydown', e => { if (e.key === 'Escape' && st.step) goStep(0); });
   $('explode').oninput = e => { st.ex = +e.target.value / 100; $('ex-val').textContent = e.target.value + ' %'; applyStep(); };
   $('man-on').onchange = e => { st.man = man.visible = e.target.checked; refresh(true); };
   $('panels-on').onchange = e => { st.panels = e.target.checked; refresh(false); };
