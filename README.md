@@ -9,7 +9,7 @@ Apri `index.html` nel browser: non serve build.
 - Scaffale in pannelli antracite da 18 mm: pianta 1200 × 800, spina centrale, 3 vani sul fronte e 2 sul retro, livelli e altezza regolabili, piano superiore.
 - Fianchi esterni che scendono sulle testate dei pallet fino a 100 mm da terra (aperture forche libere).
 - Pannelli 6 mm sui lati lunghi.
-- Insegna in forex 10 mm su profilo a U di alluminio, altezza regolabile al centimetro (default 32 cm: i cartelli A4 appoggiati sul profilo non sporgono).
+- Insegna in OSB 18 mm fissata al piano superiore con squadrette a L, altezza regolabile al centimetro con contatore (default 32 cm: i cartelli A4 appoggiati sul profilo non sporgono).
 - Montaggio passo-passo, vista esplosa, figura umana di 175 cm di riferimento.
 - Pannelli in OSB di pioppo verniciato antracite (texture OSB procedurale ripetibile).
 - Pulsante **Scarica il PDF di taglio**: riepilogo, una tavola quotata per tipo di pannello (fori, quantità, posizione 3D) e sequenza di montaggio.

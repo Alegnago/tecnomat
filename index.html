@@ -7,150 +7,178 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@700&family=Anton&family=Montserrat:wght@700&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@700&family=Anton&family=Montserrat:wght@700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Solo tema chiaro, scelta voluta. Layout: tavola tecnica — vista 3D a tutto campo, cartiglio di controllo a destra (sotto su telefono). */
+/* Solo tema chiaro, scelta voluta. Layout: vista 3D a tutto campo, pannello comandi a destra (sotto su telefono). */
 :root {
-  --bg: #f3f5f4;
+  --bg: #eef0ef;
   --sheet: #ffffff;
-  --canvas: #f4f6f5;
-  --ink: #1d2422;
-  --muted: #5b6662;
-  --rule: #c9cfcb;
+  --canvas: #f5f6f5;
+  --ink: #1b2220;
+  --muted: #6b7571;
+  --rule: #e1e5e3;
+  --field: #f3f5f4;
+  --accent: #d4561f;
+  --accent-ink: #ffffff;
   --quote: #b3261e;
   --edge: #9aa0a6;
   --ground: #e9ecea;
   --focus: #1f5fbf;
   color-scheme: light;
-  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
   --f-body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
   --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --r: 12px;
 }
 html, body { height: 100%; }
 body {
   background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 14px;
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-block: 16px; box-sizing: border-box;
+  padding-left: max(12px, env(safe-area-inset-left, 0px));
+  padding-right: max(12px, env(safe-area-inset-right, 0px));
+  padding-block: 12px; box-sizing: border-box;
 }
-.app { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 16px var(--aside-w, 340px); }
+.app { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 12px var(--aside-w, 340px); }
 /* divisore trascinabile tra vista e pannello */
 .splitter { position: relative; cursor: col-resize; touch-action: none; user-select: none; }
 .splitter::before {
-  content: ""; position: absolute; top: 50%; left: 50%; width: 4px; height: 40px;
-  transform: translate(-50%, -50%); border-radius: 2px; background: var(--rule);
+  content: ""; position: absolute; top: 50%; left: 50%; width: 4px; height: 36px;
+  transform: translate(-50%, -50%); border-radius: 2px; background: #c9cfcc;
   transition: background .15s, height .15s;
 }
 .splitter:hover::before, .splitter.drag::before, .splitter:focus-visible::before { background: var(--muted); height: 72px; }
 .splitter:focus-visible { outline: none; }
-@media (prefers-reduced-motion: reduce) { .splitter::before { transition: none; } }
-.view {
-  position: relative; min-width: 0; min-height: 0; background: var(--canvas);
-  border: 1px solid var(--rule); border-radius: 4px; overflow: hidden;
-}
+
+/* vista 3D */
+.view { position: relative; min-width: 0; min-height: 0; background: var(--canvas); border-radius: var(--r); overflow: hidden; box-shadow: 0 0 0 1px var(--rule); }
 #stage { position: absolute; inset: 0; }
 #stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 #labels { position: absolute; inset: 0; pointer-events: none; }
 .dim {
   position: absolute; transform: translate(-50%, -50%);
   font-family: var(--f-mono); font-size: 11px; font-weight: 500; color: var(--quote);
-  background: color-mix(in srgb, var(--canvas) 82%, transparent);
-  padding: 1px 4px; border-radius: 2px; white-space: nowrap; font-variant-numeric: tabular-nums;
+  background: color-mix(in srgb, var(--canvas) 85%, transparent);
+  padding: 1px 4px; border-radius: 3px; white-space: nowrap; font-variant-numeric: tabular-nums;
 }
 .dim.tot { font-size: 13px; font-weight: 600; }
-.views { position: absolute; left: 12px; top: 12px; display: flex; gap: 4px; flex-wrap: wrap; }
-.views button {
-  font: 500 12px/1 var(--f-body); color: var(--ink); background: var(--sheet);
-  border: 1px solid var(--rule); border-radius: 3px; padding: 7px 10px; cursor: pointer;
+.views {
+  position: absolute; left: 12px; top: 12px; display: flex; gap: 2px; flex-wrap: wrap;
+  background: var(--sheet); border-radius: 999px; padding: 3px; box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 0 0 1px var(--rule);
 }
-.views button[aria-pressed="true"] { border-color: var(--ink); }
-.hint { position: absolute; left: 12px; top: 52px; font-size: 11px; color: var(--muted); }
+.views button {
+  font: 500 12px/1 var(--f-body); color: var(--muted); background: none; border: 0;
+  border-radius: 999px; padding: 7px 12px; cursor: pointer;
+}
+.views button:hover { color: var(--ink); }
+.views button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.hint { position: absolute; right: 14px; top: 20px; font-size: 11px; color: var(--muted); }
 .stepbar {
-  position: absolute; left: 12px; right: 12px; bottom: 12px; margin-inline: auto; max-width: 620px;
-  display: grid; grid-template-columns: 40px minmax(0, 1fr) 40px auto; gap: 10px; align-items: center;
-  background: var(--sheet); border: 1px solid var(--rule); border-radius: 4px; padding: 8px;
+  position: absolute; left: 12px; right: 12px; bottom: 12px; margin-inline: auto; max-width: 640px;
+  display: grid; grid-template-columns: 36px minmax(0, 1fr) 36px auto; gap: 10px; align-items: center;
+  background: var(--sheet); border-radius: var(--r); padding: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.08), 0 0 0 1px var(--rule);
 }
 .stepbar button {
-  height: 40px; font: 600 20px/1 var(--f-mono); color: var(--ink); background: var(--bg);
-  border: 1px solid var(--rule); border-radius: 3px; cursor: pointer;
+  height: 36px; font: 500 18px/1 var(--f-body); color: var(--ink); background: var(--field);
+  border: 0; border-radius: 999px; cursor: pointer;
 }
+.stepbar button:hover:not(:disabled) { background: #e6e9e7; }
 .stepbar button:disabled { opacity: .35; cursor: default; }
 .stepbar button.exit { font: 500 13px/1 var(--f-body); padding: 0 14px; }
 .stepbar-txt { display: grid; gap: 2px; min-width: 0; }
-.stepbar-txt output { font: 600 11px/1.2 var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: #c25a10; }
+.stepbar-txt output { font: 600 11px/1.2 var(--f-body); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
 .stepbar-txt span { font-size: 13px; line-height: 1.35; }
 
+/* pannello comandi */
 aside {
-  min-width: 0; background: var(--sheet); border: 1px solid var(--rule); border-radius: 4px;
+  min-width: 0; background: var(--sheet); border-radius: var(--r); box-shadow: 0 0 0 1px var(--rule);
   display: flex; flex-direction: column; overflow: auto;
 }
-.block { padding: 16px; border-bottom: 1px solid var(--rule); display: grid; gap: 12px; }
-.block:last-child { border-bottom: 0; }
-.eyebrow { font: 600 11px/1 var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-h1 { font: 700 28px/1 var(--f-display); letter-spacing: .01em; margin: 0; text-wrap: balance; }
-.sub { color: var(--muted); margin: 0; font-size: 13px; }
+.head { padding: 20px 18px 6px; display: grid; gap: 4px; }
+h1 { font: 600 20px/1.2 var(--f-body); margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.sub { color: var(--muted); margin: 0; font-size: 12.5px; }
+.group { padding: 14px 18px; display: grid; gap: 4px; border-top: 1px solid var(--rule); }
+.group:first-of-type { border-top: 0; }
+.group h2 { font: 600 11px/1 var(--f-body); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin: 4px 0 6px; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; }
+.row > span { font-size: 14px; }
+.row small { color: var(--muted); font-size: 12px; }
 
-.stepper { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 8px; }
-.stepper button {
-  height: 44px; font: 600 22px/1 var(--f-mono); color: var(--ink); background: var(--bg);
-  border: 1px solid var(--rule); border-radius: 3px; cursor: pointer;
+/* contatore − valore + (tieni premuto per scorrere) */
+.counter { display: inline-grid; grid-template-columns: 32px minmax(64px, auto) 32px; align-items: center; background: var(--field); border-radius: 999px; padding: 2px; }
+.counter button {
+  width: 32px; height: 32px; border: 0; border-radius: 999px; background: var(--sheet); color: var(--ink);
+  font: 500 18px/1 var(--f-body); cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,.08); touch-action: manipulation;
 }
-.stepper button:disabled { opacity: .35; cursor: default; }
-.count { text-align: center; }
-.count output { font: 700 44px/1 var(--f-display); font-variant-numeric: tabular-nums; display: block; }
-.count span { font-size: 12px; color: var(--muted); }
-.stepper.sm { grid-template-columns: 36px 1fr 36px; }
-.stepper.sm button { height: 36px; font-size: 18px; }
-.stepper.sm output { font-size: 30px; }
-input[type="range"] { width: 100%; accent-color: var(--quote); }
-.field { display: grid; gap: 6px; }
-.field-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.field-row label { font-size: 13px; }
-.num {
-  width: 84px; font: 500 14px var(--f-mono); color: var(--ink); background: var(--bg);
-  border: 1px solid var(--rule); border-radius: 3px; padding: 5px 6px; text-align: right;
-}
+.counter button:hover:not(:disabled) { background: #fafafa; }
+.counter button:active:not(:disabled) { transform: scale(.94); }
+.counter button:disabled { opacity: .35; cursor: default; box-shadow: none; }
+.counter output { text-align: center; font: 600 15px/1 var(--f-body); font-variant-numeric: tabular-nums; padding: 0 6px; white-space: nowrap; }
+.counter output small { font-weight: 400; color: var(--muted); font-size: 12px; margin-left: 2px; }
 
-.readout { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 0; }
-.readout div { background: var(--sheet); padding: 10px; display: grid; gap: 4px; min-width: 0; }
+/* interruttore */
+.switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; cursor: pointer; font-size: 14px; }
+.switch input {
+  appearance: none; -webkit-appearance: none; flex: none; width: 36px; height: 20px; margin: 0; border-radius: 999px;
+  background: #cfd5d2; position: relative; cursor: pointer; transition: background .15s;
+}
+.switch input::before {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .15s;
+}
+.switch input:checked { background: var(--accent); }
+.switch input:checked::before { transform: translateX(16px); }
+.switch input:disabled { opacity: .4; cursor: default; }
+.switch:has(input:disabled) { color: var(--muted); cursor: default; }
+
+input[type="range"] { width: 140px; accent-color: var(--accent); }
+.readout { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 0; }
+.readout div { background: var(--field); border-radius: 8px; padding: 9px 10px; display: grid; gap: 3px; min-width: 0; }
 .readout dt { font-size: 11px; color: var(--muted); }
-.readout dd { margin: 0; font: 500 17px/1.15 var(--f-mono); font-variant-numeric: tabular-nums; }
-.readout dd small { font-size: 11px; color: var(--muted); }
+.readout dd { margin: 0; font: 600 15px/1.2 var(--f-body); font-variant-numeric: tabular-nums; }
+.readout dd small { font-size: 11px; font-weight: 400; color: var(--muted); }
 .readout .wide { grid-column: 1 / -1; }
-.readout .wide dd.hl { color: var(--quote); font-size: 22px; }
-
-.toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; }
-.toggle input { accent-color: var(--quote); width: 16px; height: 16px; margin: 0; }
+.readout .wide dd.hl { color: var(--accent); font-size: 22px; }
 
 .tbl { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 12px; }
-th, td { text-align: left; padding: 5px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th, td { text-align: left; padding: 6px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
 th { font-weight: 500; color: var(--muted); font-size: 11px; }
-td.n, th.n { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; padding-left: 8px; white-space: nowrap; }
-.note { font-size: 11px; color: var(--muted); margin: 0; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; padding-left: 8px; white-space: nowrap; }
+.note { font-size: 12px; color: var(--muted); margin: 4px 0 0; line-height: 1.45; }
 .steps { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 12.5px; line-height: 1.4; }
-.steps li::marker { font-family: var(--f-mono); color: var(--muted); }
-.steps button { all: unset; cursor: pointer; display: block; color: var(--muted); border-radius: 2px; }
+.steps li::marker { color: var(--muted); font-variant-numeric: tabular-nums; }
+.steps button { all: unset; cursor: pointer; display: block; color: var(--muted); border-radius: 3px; }
+.steps button:hover { color: var(--ink); }
 .steps button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .steps li.done button { color: var(--ink); }
 .steps li.cur button { color: var(--ink); font-weight: 600; }
-.steps li.cur::marker { color: #e8701a; font-weight: 600; }
-details summary { cursor: pointer; font-size: 13px; }
-details[open] summary { margin-bottom: 8px; }
+.steps li.cur::marker { color: var(--accent); font-weight: 600; }
+details { border-radius: 8px; }
+details summary { cursor: pointer; font-size: 14px; min-height: 36px; display: flex; align-items: center; list-style: none; }
+details summary::-webkit-details-marker { display: none; }
+details summary::after { content: "+"; margin-left: auto; color: var(--muted); font-size: 18px; }
+details[open] summary::after { content: "−"; }
 
-.cta-btn {
-  height: 48px; font: 600 15px/1 var(--f-body); color: #fff; background: #d4561f;
-  border: 0; border-radius: 4px; cursor: pointer;
+/* call to action sempre visibile in fondo al pannello */
+.cta-wrap {
+  position: sticky; bottom: 0; margin-top: auto; padding: 14px 18px 16px; display: grid; gap: 6px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0), var(--sheet) 22%); border-top: 1px solid var(--rule);
 }
-.cta-btn:hover { background: #b8471a; }
+.cta-btn {
+  height: 46px; font: 600 15px/1 var(--f-body); color: var(--accent-ink); background: var(--accent);
+  border: 0; border-radius: 999px; cursor: pointer; box-shadow: 0 4px 12px rgba(212,86,31,.28);
+}
+.cta-btn:hover { background: #bd4b19; }
 .cta-btn:disabled { opacity: .6; cursor: progress; }
+.cta-wrap .note { margin: 0; text-align: center; }
 button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .splitter::before, .switch input, .switch input::before { transition: none; } }
+@media (max-width: 1180px) { .hint { display: none; } }
 
 @media (max-width: 860px) {
   html, body { height: auto; }
-  .app { grid-template-columns: 1fr; height: auto; gap: 16px; }
+  .app { grid-template-columns: 1fr; height: auto; gap: 12px; }
   .splitter { display: none; }
   .view { height: 62vh; min-height: 340px; }
+  .hint { display: none; }
 }
 </style>
 </head>
@@ -166,7 +194,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
       <button id="v-side" data-view="side" aria-pressed="false">Lato 800</button>
       <button id="v-top" data-view="top" aria-pressed="false">Pianta</button>
     </div>
-    <div class="hint">Trascina per ruotare · rotella o pizzico per zoom · tasto destro per spostare</div>
+    <div class="hint">Trascina per ruotare · rotella per lo zoom</div>
     <div class="stepbar" role="group" aria-label="Montaggio passo-passo">
       <button id="st-prev" aria-label="Passo precedente">‹</button>
       <div class="stepbar-txt">
@@ -181,89 +209,76 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
   <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" aria-label="Larghezza pannello laterale" tabindex="0" title="Trascina per cambiare la larghezza · doppio clic per ripristinare"></div>
 
   <aside>
-    <div class="block">
-      <span class="eyebrow">Tavola 01 · Espositore custodie neve</span>
-      <h1>Base pallet EPAL e scaffale</h1>
-      <p class="sub">EPAL 1 EN 13698-1 · OSB di pioppo 18 mm verniciato antracite · quote in mm</p>
-    </div>
+    <header class="head">
+      <h1>Espositore calze neve</h1>
+      <p class="sub">Pallet EPAL 1 · OSB di pioppo 18 mm antracite · misure in mm</p>
+    </header>
 
-    <div class="block">
-      <span class="eyebrow">Numero pallet</span>
-      <div class="stepper">
-        <button id="minus" aria-label="Togli un pallet">−</button>
-        <div class="count"><output id="count">3</output><span id="count-lbl">pallet</span></div>
-        <button id="plus" aria-label="Aggiungi un pallet">+</button>
+    <section class="group" aria-labelledby="g-base">
+      <h2 id="g-base">Base</h2>
+      <div class="row"><span>Pallet EPAL</span>
+        <div class="counter"><button id="minus" aria-label="Togli un pallet">−</button><output id="count" aria-live="polite">3</output><button id="plus" aria-label="Aggiungi un pallet">+</button></div>
       </div>
-      <input type="range" id="range" min="1" max="12" step="1" value="3" aria-label="Numero pallet">
-      <label class="toggle"><input type="checkbox" id="panels-on" checked> Pannelli OSB 6 mm sui lati lunghi</label>
-      <p class="note">Lati lunghi chiusi del tutto. Sui lati corti scende il fianco da 18 mm dello scaffale e si ferma a 100 da terra, sopra le aperture forche (227,5 × 100).</p>
-    </div>
+      <label class="switch">Pannelli 6 mm sui lati lunghi <input type="checkbox" id="panels-on" checked></label>
+    </section>
 
-    <div class="block">
-      <span class="eyebrow">Scaffale sopra i pallet</span>
-      <label class="toggle"><input type="checkbox" id="shelf-on" checked> Mostra scaffale</label>
-      <div class="field">
-        <div class="field-row"><label for="shelf-h">Altezza scaffale</label><input class="num" type="number" id="shelf-h-num" min="300" max="2000" step="10" value="800" aria-label="Altezza scaffale in mm"></div>
-        <input type="range" id="shelf-h" min="300" max="2000" step="10" value="800">
+    <section class="group" aria-labelledby="g-shelf">
+      <h2 id="g-shelf">Scaffale</h2>
+      <label class="switch">Mostra scaffale <input type="checkbox" id="shelf-on" checked></label>
+      <div class="row"><span>Altezza</span>
+        <div class="counter"><button id="sh-minus" aria-label="Abbassa lo scaffale di 10 mm">−</button><output id="shelf-h-val" aria-live="polite">800</output><button id="sh-plus" aria-label="Alza lo scaffale di 10 mm">+</button></div>
       </div>
-      <div class="field">
-        <span style="font-size:13px">Livelli (ripiani)</span>
-        <div class="stepper sm">
-          <button id="lv-minus" aria-label="Togli un livello">−</button>
-          <div class="count"><output id="levels">2</output></div>
-          <button id="lv-plus" aria-label="Aggiungi un livello">+</button>
-        </div>
+      <div class="row"><span>Livelli</span>
+        <div class="counter"><button id="lv-minus" aria-label="Togli un livello">−</button><output id="levels" aria-live="polite">2</output><button id="lv-plus" aria-label="Aggiungi un livello">+</button></div>
       </div>
-      <label class="toggle"><input type="checkbox" id="shelf-top" checked> Piano di chiusura superiore</label>
-      <label class="toggle"><input type="checkbox" id="show-dims" checked> Mostra quote</label>
-      <p class="note">Pianta 1200 × 800 divisa in due da una spina centrale: 3 vani sul fronte, 2 sul retro.</p>
-    </div>
+      <label class="switch">Piano superiore <input type="checkbox" id="shelf-top" checked></label>
+    </section>
 
-    <div class="block">
-      <span class="eyebrow">Insegna sopra lo scaffale</span>
-      <label class="toggle"><input type="checkbox" id="sign-on" checked> Mostra insegna</label>
-      <label class="toggle"><input type="checkbox" id="tags-on" checked> Cartelli prezzo A4 sopra ogni vano</label>
-      <div class="field-row"><label for="sign-h">Altezza foglio</label><span><input class="num" type="number" id="sign-h" min="5" max="100" step="1" value="32"> cm</span></div>
-      <p class="note">Foglio in forex grigio antracite da 10 mm, lungo 1200, centrato sopra la spina e parallelo al lato lungo. Si infila in un profilo a U di alluminio (luce 10) avvitato al piano superiore con 4 viti: nessun foro nel foglio, si sfila per cambiarlo.</p>
-    </div>
-
-    <div class="block">
-      <span class="eyebrow">Montaggio</span>
-      <div class="field">
-        <div class="field-row"><label for="explode">Vista esplosa</label><output id="ex-val" for="explode">0 %</output></div>
-        <input type="range" id="explode" min="0" max="100" step="1" value="0">
+    <section class="group" aria-labelledby="g-sign">
+      <h2 id="g-sign">Insegna prezzi</h2>
+      <label class="switch">Mostra insegna <input type="checkbox" id="sign-on" checked></label>
+      <div class="row"><span>Altezza</span>
+        <div class="counter"><button id="sg-minus" aria-label="Abbassa l'insegna di 1 cm">−</button><output id="sign-h-val" aria-live="polite">32</output><button id="sg-plus" aria-label="Alza l'insegna di 1 cm">+</button></div>
       </div>
-      <label class="toggle"><input type="checkbox" id="man-on" checked> Figura umana 175 cm</label>
-      <span style="font-size:13px">Montaggio passo-passo (comandi anche sotto la vista 3D)</span>
-      <ol class="steps" id="steps"></ol>
-      <p class="note">Il pezzo arancione è quello da montare in quel passo; le viti sono fuori dal foro, con una linea tratteggiata fino a dove entrano. Clicca su un passo per saltarci. Quote nascoste durante esploso e passo-passo.</p>
-    </div>
+      <label class="switch">Cartelli prezzo A4 <input type="checkbox" id="tags-on" checked></label>
+    </section>
 
-    <div class="block">
-      <span class="eyebrow">Ingombro e vani</span>
+    <section class="group" aria-labelledby="g-view">
+      <h2 id="g-view">Vista</h2>
+      <label class="switch">Quote <input type="checkbox" id="show-dims" checked></label>
+      <label class="switch">Figura umana 175 cm <input type="checkbox" id="man-on" checked></label>
+      <div class="row"><label for="explode">Esploso <small id="ex-val">0 %</small></label><input type="range" id="explode" min="0" max="100" step="1" value="0"></div>
+    </section>
+
+    <section class="group" aria-labelledby="g-size">
+      <h2 id="g-size">Misure</h2>
       <dl class="readout">
         <div class="wide"><dt>Altezza totale da terra</dt><dd class="hl" id="r-h">—</dd></div>
         <div><dt>Pianta</dt><dd id="r-plan">1200 × 800 <small>mm</small></dd></div>
+        <div><dt>Piano espositivo</dt><dd id="r-z0">—</dd></div>
+        <div class="wide"><dt>Vano fronte, 3 per livello (L × P × H)</dt><dd id="r-vf">—</dd></div>
+        <div class="wide"><dt>Vano retro, 2 per livello (L × P × H)</dt><dd id="r-vb">—</dd></div>
         <div><dt>Altezza pallet</dt><dd id="r-ph">—</dd></div>
-        <div class="wide"><dt>Vano fronte (×3 per livello) L × P × H</dt><dd id="r-vf">—</dd></div>
-        <div class="wide"><dt>Vano retro (×2 per livello) L × P × H</dt><dd id="r-vb">—</dd></div>
-        <div><dt>Piano espositivo da terra</dt><dd id="r-z0">—</dd></div>
         <div><dt>Vani totali</dt><dd id="r-nv">—</dd></div>
       </dl>
-      <p class="note">Misure dei vani al netto dei pannelli (luce interna).</p>
-    </div>
+    </section>
 
-    <div class="block">
-      <span class="eyebrow">Distinta</span>
-      <details open>
-        <summary>Scaffale e pannelli di chiusura</summary>
+    <section class="group" aria-labelledby="g-steps">
+      <h2 id="g-steps">Montaggio</h2>
+      <ol class="steps" id="steps"></ol>
+      <p class="note">Usa ‹ › sotto la vista 3D: il pezzo del passo è in arancione e le viti sono fuori dal foro, con la linea fino a dove entrano.</p>
+    </section>
+
+    <section class="group">
+      <details>
+        <summary>Distinta pannelli e ferramenta</summary>
         <div class="tbl"><table>
           <thead><tr><th>Pezzo</th><th class="n">Q.tà</th><th class="n">L × H × sp.</th></tr></thead>
           <tbody id="cut"></tbody>
         </table></div>
       </details>
       <details>
-        <summary>Pallet EPAL 1 · per singolo pallet</summary>
+        <summary>Pallet EPAL 1, per pallet</summary>
         <div class="tbl"><table>
           <thead><tr><th>Pezzo</th><th class="n">Q.tà</th><th class="n">L × P × H</th></tr></thead>
           <tbody>
@@ -278,11 +293,11 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
         </table></div>
         <p class="note">Altezza 22 + 78 + 22 + 22 = 144. Luce tra tavole superiori 41,25.</p>
       </details>
-    </div>
-    <div class="block">
-      <span class="eyebrow">Esporta</span>
+    </section>
+
+    <div class="cta-wrap">
       <button id="pdf-btn" class="cta-btn">Scarica il PDF di taglio</button>
-      <p class="note" id="pdf-msg">Una tavola per ogni tipo di pannello con quote, fori, quantità e posizione nell'espositore, più riepilogo, ferramenta e sequenza di montaggio.</p>
+      <p class="note" id="pdf-msg">Tavole quotate per ogni pannello, ferramenta e montaggio.</p>
     </div>
   </aside>
 </div>
@@ -499,7 +514,6 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
     return t;
   })();
   const M_PANEL = new THREE.MeshStandardMaterial({ color: 0x55595e, roughness: 0.78, map: osbTex, bumpMap: osbTex, bumpScale: 0.0012 });
-  const M_FOREX = new THREE.MeshStandardMaterial({ color: 0x4a4d52, roughness: 0.6 });
   // UV di un BoxGeometry in metri / OSB_TILE, così la texture non si stira sui pannelli lunghi
   function osbUV(g, sx, sy, sz) {
     const uv = g.attributes.uv, dims = [[sz, sy], [sz, sy], [sx, sz], [sx, sz], [sx, sy], [sx, sy]];
@@ -604,37 +618,35 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
     man.position.set((L / 2 + MAN_DX) * MM, 0, 0);
   })();
 
-  // Insegna: foglio forex 10 mm infilato in un profilo a U di alluminio avvitato al piano superiore
-  const SIGN_T = 10, U = { w: 14, h: 15, t: 2 };
+  // Insegna: pannello OSB 18 mm in piedi sul piano superiore, in asse con la spina, fissato con squadrette a L
+  const SIGN_T = S;
   const signG = new THREE.Group(); scene.add(signG);
-  const M_ALU = new THREE.MeshStandardMaterial({ color: 0xd5d9dd, metalness: 0.7, roughness: 0.3 });
   const signBase = () => st.n * H + (st.shelfOn ? st.hs : 0);
-  const totalH = () => signBase() + (st.sign ? U.t + st.signH : 0);
-
+  const totalH = () => signBase() + (st.sign ? st.signH : 0);
+  // squadrette negli spazi liberi tra i cartelli: 4 sul fronte, 3 sul retro
+  const SIGN_BR_F = [45, 397, 803, 1155], SIGN_BR_B = [95, 600, 1105];
 
   function buildSign() {
     disposeGroup(signG); signG.clear();
     if (!st.sign) return;
     const zb = signBase(), yc = W / 2;
     const e = V(0, EX * 0.5, 0), es = V(0, EX * 1.6, 0);
-    const sS = addStep(st.tags
-      ? 'Avvita il profilo a U sul piano superiore, infila il foglio e attacca i 5 cartelli prezzo A4: S, M, L sul fronte, XL e XXL sul retro, ognuno sopra il suo vano.'
-      : 'Avvita il profilo a U sul piano superiore e infila il foglio.');
-    for (const x of [150, 450, 750, 1050]) screw(sS, [x, yc, zb + U.t], [0, 0, -1], T_U);
-    tag(box(0, L, yc - U.w / 2, yc + U.w / 2, zb, zb + U.t, M_ALU, signG, true), e).userData.step = sS;          // fondo U
-    tag(box(0, L, yc - U.w / 2, yc - U.w / 2 + U.t, zb, zb + U.h, M_ALU, signG, true), e).userData.step = sS;    // aletta
-    tag(box(0, L, yc + U.w / 2 - U.t, yc + U.w / 2, zb, zb + U.h, M_ALU, signG, true), e).userData.step = sS;    // aletta
+    const sS = addStep(`Metti in piedi il pannello dell'insegna sul piano superiore, in asse con la spina, e fissalo con ${SIGN_BR_F.length + SIGN_BR_B.length} squadrette a L (${SIGN_BR_F.length} sul fronte, ${SIGN_BR_B.length} sul retro).`
+      + (st.tags ? ' Poi attacca i 5 cartelli prezzo A4 a 1 cm dal bordo alto: S, M, L sul fronte, XL e XXL sul retro, ognuno sopra il suo vano.' : ''));
     const g = new THREE.BoxGeometry(L * MM, st.signH * MM, SIGN_T * MM);
-    const m = new THREE.Mesh(g, M_FOREX);
-    m.position.set(0, (zb + U.t + st.signH / 2) * MM, 0);
+    osbUV(g, L * MM, st.signH * MM, SIGN_T * MM);
+    const m = new THREE.Mesh(g, M_PANEL);
+    m.position.set(0, (zb + st.signH / 2) * MM, 0);
     m.castShadow = m.receiveShadow = true;
     m.add(new THREE.LineSegments(new THREE.EdgesGeometry(g), edgeMat));
     signG.add(m); part(stp(tag(m, es), sS), 'H');
+    for (const x of SIGN_BR_F) bracket([x, yc + SIGN_T / 2, zb], 'y+', 'z+', es, sS, signG);
+    for (const x of SIGN_BR_B) bracket([x, yc - SIGN_T / 2, zb], 'y-', 'z+', es, sS, signG);
     if (!st.tags) return;
     // cartelli A4 in cartoncino da 1 mm, staccati 1 mm dal foglio: a 1 cm dal bordo alto del foglio,
-    // oppure appoggiati sull'aletta del profilo a U se il foglio è basso.
+    // mai più in basso del piano superiore.
     // Fronte S·M·L sopra i 3 vani, retro XL·XXL sopra i 2.
-    const CARD = 1, zc = Math.max(zb + U.h + 297 / 2, zb + U.t + st.signH - 10 - 297 / 2) * MM;
+    const CARD = 1, zc = Math.max(zb + 297 / 2, zb + st.signH - 10 - 297 / 2) * MM;
     const spots = [...[0, 1, 2].map(k => [k * (VF + S) + VF / 2, 1]), ...[0, 1].map(k => [k * (VB + S) + VB / 2, -1])];
     spots.forEach(([x, side], i) => {
       const g = new THREE.BoxGeometry(0.21, 0.297, CARD * MM);
@@ -667,7 +679,6 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
   const T_CF = { name: 'Vite confirmat (foro con punta a gradino 5/7 mm)', size: '7 × 50', short: 'confirmat 7 × 50', d: 7, len: 50 };
   const T_45 = { name: 'Vite truciolare, fondo e fianchi → pallet', size: '4 × 50', short: 'viti 4 × 50', d: 4, len: 50 };
   const T_PN = { name: 'Vite antracite, pannelli 6 mm → blocchi pallet', size: '3,5 × 30', short: 'viti 3,5 × 30', d: 3.5, len: 30 };
-  const T_U = { name: 'Vite, profilo U → piano superiore', size: '3,5 × 20', short: 'viti 3,5 × 20', d: 3.5, len: 20 };
   function describe(i) {
     const s = steps[i], c = new Map();
     for (const sc of s.screws) c.set(sc.t, (c.get(sc.t) || 0) + 1);
@@ -680,14 +691,14 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
   // ala B lungo b, appoggiata sulla faccia con normale a. 2 fori per ala, viti verso il pannello.
   const BR = { leg: 40, w: 20, t: 2 };
   const AXI = { x: 0, y: 1, z: 2 };
-  function bracket(c, a, b, ex, s) {
+  function bracket(c, a, b, ex, s, parent = shelf) {
     const ia = AXI[a[0]], sa = a[1] === '+' ? 1 : -1, ib = AXI[b[0]], sb = b[1] === '+' ? 1 : -1, iw = 3 - ia - ib;
     const piece = (la, lb) => {
       const lo = [0, 0, 0], hi = [0, 0, 0];
       const span = (i, sg, len) => { lo[i] = Math.min(c[i], c[i] + sg * len); hi[i] = Math.max(c[i], c[i] + sg * len); };
       span(ia, sa, la); span(ib, sb, lb);
       lo[iw] = c[iw] - BR.w / 2; hi[iw] = c[iw] + BR.w / 2;
-      stp(tag(box(lo[0], hi[0], lo[1], hi[1], lo[2], hi[2], M_STEEL, shelf, true), ex), s);
+      stp(tag(box(lo[0], hi[0], lo[1], hi[1], lo[2], hi[2], M_STEEL, parent, true), ex), s);
     };
     piece(BR.leg, BR.t); piece(BR.t, BR.leg);
     const da = [0, 0, 0], db = [0, 0, 0]; da[ia] = -sa; db[ib] = -sb;
@@ -839,7 +850,7 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
       }
     }
     if (st.sign) {                                                    // altezza foglio insegna
-      const zs = signBase() + U.t;
+      const zs = signBase();
       dim(P(0, W / 2, zs), P(0, W / 2, zs + st.signH), V(-0.18, 0, 0));
     }
     if (st.shelfOn || st.sign) dim(P(0, W, 0), P(0, W, total), V(-0.58, 0, 0), null, 'tot');  // totale da terra
@@ -860,8 +871,7 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
     if (st.panels) rows.push(
       ['Pannello OSB di pioppo 6 mm verniciato antracite, lato lungo', 2, `${L + 2 * sideX()} × ${fmt(st.n * H)} × ${PT}`]);
     if (st.sign) rows.push(
-      ['Foglio forex grigio antracite', 1, `${L} × ${fmt(st.signH)} × ${SIGN_T}`],
-      ['Profilo U alluminio, luce interna 10', 1, `${L} × ${U.h} × ${U.w}`]);
+      ['Pannello insegna OSB, fissato con squadrette a L', 1, `${L} × ${fmt(st.signH)} × ${SIGN_T}`]);
     if (st.nBr) rows.push(['Squadretta a L acciaio zincato, 2 fori per ala', st.nBr, '40 × 40 × 20 sp. 2']);
     const hw = new Map();                                    // ferramenta contata dai passi di montaggio
     for (const sp of steps) for (const sc of sp.screws) hw.set(sc.t, (hw.get(sc.t) || 0) + 1);
@@ -897,24 +907,25 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
   const $ = id => document.getElementById(id);
   function updateUI() {
     const n = st.n, ch = clearH();
+    const on = st.shelfOn;
     $('count').textContent = n;
-    $('count-lbl').textContent = n === 1 ? 'pallet' : 'pallet impilati';
-    $('range').value = n;
     $('minus').disabled = n <= 1; $('plus').disabled = n >= MAXN;
     $('levels').textContent = st.levels;
-    $('lv-minus').disabled = st.levels <= 1; $('lv-plus').disabled = st.levels >= 6;
-    $('shelf-h').value = st.hs; $('shelf-h-num').value = st.hs;
-    $('shelf-h').min = minHs(st.levels);
+    $('lv-minus').disabled = !on || st.levels <= 1; $('lv-plus').disabled = !on || st.levels >= 6;
+    $('shelf-h-val').innerHTML = `${st.hs}<small>mm</small>`;
+    $('sh-minus').disabled = !on || st.hs <= minHs(st.levels); $('sh-plus').disabled = !on || st.hs >= 2000;
+    $('shelf-top').disabled = !on;
+    $('sign-h-val').innerHTML = `${st.signH / 10}<small>cm</small>`;
+    $('sg-minus').disabled = !st.sign || st.signH <= 50; $('sg-plus').disabled = !st.sign || st.signH >= 1000;
+    $('tags-on').disabled = !st.sign;
     const tot = totalH();
     $('r-h').innerHTML = fmt(tot) + ' <small>mm</small>';
     $('r-plan').innerHTML = `${L + 2 * sideX()} × ${W + (st.panels ? 2 * PT : 0)} <small>mm</small>`;
     $('r-ph').innerHTML = fmt(n * H) + ' <small>mm</small>';
     $('r-z0').innerHTML = fmt(n * H + (st.shelfOn ? S : 0)) + ' <small>mm</small>';
-    const on = st.shelfOn;
     $('r-vf').innerHTML = on ? `${fmt(VF)} × ${fmt(DEPTH)} × ${fmt(ch)} <small>mm</small>` : '—';
     $('r-vb').innerHTML = on ? `${fmt(VB)} × ${fmt(DEPTH)} × ${fmt(ch)} <small>mm</small>` : '—';
     $('r-nv').textContent = on ? st.levels * (FRONT_N + BACK_N) : '—';
-    ['shelf-h', 'shelf-h-num', 'lv-minus', 'lv-plus', 'shelf-top'].forEach(id => { if (!on) $(id).disabled = true; else if (!id.startsWith('lv')) $(id).disabled = false; });
   }
 
   // --- passo-passo: mostra i pezzi fino al passo corrente, evidenzia quelli del passo ---
@@ -1064,16 +1075,26 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
   }
 
   // --- eventi ---
-  $('minus').onclick = () => setCount(st.n - 1);
-  $('plus').onclick = () => setCount(st.n + 1);
-  $('range').oninput = e => setCount(+e.target.value);
-  $('sign-on').onchange = e => { st.sign = e.target.checked; $('sign-h').disabled = $('tags-on').disabled = !st.sign; refresh(true); };
+  // contatori − / +: un clic = un passo, tenendo premuto scorre
+  function counter(minusId, plusId, step) {
+    for (const [id, d] of [[minusId, -1], [plusId, 1]]) {
+      const b = $(id); let t1 = 0, t2 = 0;
+      const stop = () => { clearTimeout(t1); clearInterval(t2); };
+      b.addEventListener('pointerdown', e => {
+        if (b.disabled || e.button > 0) return;
+        step(d);
+        t1 = setTimeout(() => { t2 = setInterval(() => (b.disabled ? stop() : step(d)), 70); }, 380);
+      });
+      for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) b.addEventListener(ev, stop);
+      b.addEventListener('click', e => { if (e.detail === 0) step(d); });   // tastiera
+    }
+  }
+  counter('minus', 'plus', d => setCount(st.n + d));
+  counter('sh-minus', 'sh-plus', d => { st.hs = Math.min(2000, Math.max(minHs(st.levels), st.hs + d * 10)); refresh(false); });
+  counter('lv-minus', 'lv-plus', d => { st.levels = Math.min(6, Math.max(1, st.levels + d)); refresh(false); });
+  counter('sg-minus', 'sg-plus', d => { st.signH = Math.min(1000, Math.max(50, st.signH + d * 10)); refresh(false); });
+  $('sign-on').onchange = e => { st.sign = e.target.checked; refresh(true); };
   $('tags-on').onchange = e => { st.tags = e.target.checked; refresh(false); };
-  $('sign-h').oninput = e => {
-    const cm = Math.round(+e.target.value);
-    if (cm >= 5 && cm <= 100) { st.signH = cm * 10; refresh(false); }
-  };
-  $('sign-h').onchange = e => { const cm = Math.round(+e.target.value); e.target.value = Math.min(100, Math.max(5, cm || 32)); e.target.dispatchEvent(new Event('input')); frame(currentView, true); };
   $('pdf-btn').onclick = exportPdf;
   $('st-prev').onclick = () => goStep(st.step - 1);
   $('st-next').onclick = () => goStep(st.step + 1);
@@ -1084,13 +1105,7 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
   $('panels-on').onchange = e => { st.panels = e.target.checked; refresh(false); };
   $('shelf-on').onchange = e => { st.shelfOn = e.target.checked; refresh(true); };
   $('shelf-top').onchange = e => { st.top = e.target.checked; refresh(false); };
-  $('shelf-h').oninput = e => { st.hs = +e.target.value; refresh(false); };
-  $('shelf-h-num').onchange = e => {
-    const val = Math.round(+e.target.value);
-    st.hs = Math.min(2000, Math.max(minHs(st.levels), isFinite(val) ? val : 800)); refresh(true);
-  };
-  $('lv-minus').onclick = () => { st.levels = Math.max(1, st.levels - 1); refresh(false); };
-  $('lv-plus').onclick = () => { st.levels = Math.min(6, st.levels + 1); refresh(true); };
+
   document.querySelectorAll('.views button').forEach(b => b.onclick = () => frame(b.dataset.view, false));
 
 
@@ -1101,7 +1116,6 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
     cf: 'Ø7 passante, svasato · confirmat 7 × 50',
     s45: 'Ø4 passante, svasato · vite 4 × 50',
     s35: 'Ø3,5 passante, svasato · vite 3,5 × 30',
-    pu: 'preforo Ø2,5 prof. 15 · vite 3,5 × 20 (profilo U)',
     edge: 'preforo in testa Ø5 prof. 45 · punta del confirmat',
   };
   function panelTypes() {
@@ -1128,8 +1142,8 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
       if (st.levels > 1) types.push({ part: 'C', name: 'Ripiano intermedio', qty: st.levels - 1, w: L, h: W, t: S, mat: P18, face: heads, edge: edgeCf,
         note: "Fori dall'alto per i confirmat nelle teste di spina e divisori del livello sotto. Sulle teste corte i prefori per i confirmat dei fianchi." });
       if (st.top) types.push({ part: 'D', name: 'Piano superiore', qty: 1, w: L, h: W, t: S, mat: P18, edge: edgeCf,
-        face: [...heads, ...(st.sign ? [150, 450, 750, 1050].map(u => ({ u, v: W / 2, kind: 'pu' })) : [])],
-        note: 'Come il ripiano intermedio' + (st.sign ? ", più 4 prefori in mezzeria per il profilo a U dell'insegna." : '.') });
+        face: heads,
+        note: 'Come il ripiano intermedio.' + (st.sign ? " Sopra, in mezzeria, va in piedi il pannello dell'insegna con le sue squadrette a L." : '') });
       const topCf = st.levels > 1 || st.top;
       types.push({ part: 'E', name: 'Spina centrale', qty: st.levels, w: L, h: ch, t: S, mat: P18, face: [],
         edge: topCf ? [0, 1, 2, 3].map(k => ({ edge: 'T', pos: L * (k + 0.5) / 4 })) : [],
@@ -1141,8 +1155,8 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
     if (st.panels) types.push({ part: 'G', name: 'Pannello di chiusura lato lungo', qty: 2, w: L + 2 * sx, h: st.n * H, t: PT, mat: 'OSB di pioppo 6 mm, verniciato antracite', edge: [],
       face: Array.from({ length: st.n }, (_, p) => [72.5, 600, 1127.5].map(x => ({ u: x + sx, v: p * H + T + BH / 2, kind: 's35' }))).flat(),
       note: 'Le viti entrano nei blocchi dei pallet e li legano tra loro. Copre anche i bordi dei fianchi.' });
-    if (st.sign) types.push({ part: 'H', name: 'Foglio insegna', qty: 1, w: L, h: st.signH, t: SIGN_T, mat: 'Forex 10 mm grigio antracite', face: [], edge: [],
-      note: 'Senza fori: si infila nel profilo a U.' + (st.tags ? ' I 5 cartelli A4 vanno a 1 cm dal bordo alto, sopra i rispettivi vani.' : '') });
+    if (st.sign) types.push({ part: 'H', name: 'Pannello insegna', qty: 1, w: L, h: st.signH, t: SIGN_T, mat: 'OSB di pioppo 18 mm, verniciato antracite', face: [], edge: [],
+      note: `In piedi sul piano superiore, in asse con la spina. Fissato con ${SIGN_BR_F.length + SIGN_BR_B.length} squadrette a L alla base: sul fronte a ${SIGN_BR_F.join(', ')} mm, sul retro a ${SIGN_BR_B.join(', ')} mm dal bordo sinistro, negli spazi tra i cartelli.` + (st.tags ? ' I 5 cartelli A4 vanno a 1 cm dal bordo alto, sopra i rispettivi vani.' : '') });
     types.forEach((t, i) => { t.code = String.fromCharCode(65 + i); });
     return types;
   }
@@ -1191,7 +1205,6 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
       if (kind === 'cf') { doc.circle(x, y, 1.7, 'S'); doc.line(x - 2.4, y, x + 2.4, y); doc.line(x, y - 2.4, x, y + 2.4); }
       else if (kind === 's45') doc.circle(x, y, 1.2, 'F');
       else if (kind === 's35') { doc.circle(x, y, 1.2, 'S'); doc.circle(x, y, 0.35, 'F'); }
-      else if (kind === 'pu') doc.circle(x, y, 0.8, 'S');
       else if (kind === 'edge') { doc.setFillColor(...ORG); doc.triangle(x - 1.3, y - 1.6, x + 1.3, y - 1.6, x, y + 0.6, 'F'); }
     }
     function dimH(x1, x2, y, yRef, label) {
@@ -1290,7 +1303,6 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
     const hwRows = [
       ...(st.nBr ? [['Squadretta a L 40 × 40 × 20, sp. 2', st.nBr]] : []),
       ...[...hw].map(([tp, q]) => [`${tp.name} ${tp.size}`, q]),
-      ...(st.sign ? [['Profilo a U alluminio 1200, luce 10', 1]] : []),
       ...(st.sign && st.tags ? [['Cartello prezzo A4 (S, M, L, XL, XXL)', 5]] : []),
     ];
     hwRows.forEach(([k, q], i) => { font(7.5); T_(k, 146, 80 + i * 4.6); font(7.5, 'bold'); T_(String(q), 284, 80 + i * 4.6, { align: 'right' }); });
