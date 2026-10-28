@@ -33,7 +33,17 @@ body {
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 16px; box-sizing: border-box;
 }
-.app { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; }
+.app { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 16px var(--aside-w, 340px); }
+/* divisore trascinabile tra vista e pannello */
+.splitter { position: relative; cursor: col-resize; touch-action: none; user-select: none; }
+.splitter::before {
+  content: ""; position: absolute; top: 50%; left: 50%; width: 4px; height: 40px;
+  transform: translate(-50%, -50%); border-radius: 2px; background: var(--rule);
+  transition: background .15s, height .15s;
+}
+.splitter:hover::before, .splitter.drag::before, .splitter:focus-visible::before { background: var(--muted); height: 72px; }
+.splitter:focus-visible { outline: none; }
+@media (prefers-reduced-motion: reduce) { .splitter::before { transition: none; } }
 .view {
   position: relative; min-width: 0; min-height: 0; background: var(--canvas);
   border: 1px solid var(--rule); border-radius: 4px; overflow: hidden;
@@ -54,7 +64,20 @@ body {
   border: 1px solid var(--rule); border-radius: 3px; padding: 7px 10px; cursor: pointer;
 }
 .views button[aria-pressed="true"] { border-color: var(--ink); }
-.hint { position: absolute; left: 12px; bottom: 10px; font-size: 11px; color: var(--muted); }
+.hint { position: absolute; left: 12px; top: 52px; font-size: 11px; color: var(--muted); }
+.stepbar {
+  position: absolute; left: 12px; right: 12px; bottom: 12px; margin-inline: auto; max-width: 620px;
+  display: grid; grid-template-columns: 40px minmax(0, 1fr) 40px; gap: 10px; align-items: center;
+  background: var(--sheet); border: 1px solid var(--rule); border-radius: 4px; padding: 8px;
+}
+.stepbar button {
+  height: 40px; font: 600 20px/1 var(--f-mono); color: var(--ink); background: var(--bg);
+  border: 1px solid var(--rule); border-radius: 3px; cursor: pointer;
+}
+.stepbar button:disabled { opacity: .35; cursor: default; }
+.stepbar-txt { display: grid; gap: 2px; min-width: 0; }
+.stepbar-txt output { font: 600 11px/1.2 var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: #c25a10; }
+.stepbar-txt span { font-size: 13px; line-height: 1.35; }
 
 aside {
   min-width: 0; background: var(--sheet); border: 1px solid var(--rule); border-radius: 4px;
@@ -118,7 +141,8 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
 
 @media (max-width: 860px) {
   html, body { height: auto; }
-  .app { grid-template-columns: 1fr; height: auto; }
+  .app { grid-template-columns: 1fr; height: auto; gap: 16px; }
+  .splitter { display: none; }
   .view { height: 62vh; min-height: 340px; }
 }
 </style>
@@ -136,7 +160,17 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
       <button id="v-top" data-view="top" aria-pressed="false">Pianta</button>
     </div>
     <div class="hint">Trascina per ruotare · rotella o pizzico per zoom · tasto destro per spostare</div>
+    <div class="stepbar" role="group" aria-label="Montaggio passo-passo">
+      <button id="st-prev" aria-label="Passo precedente">‹</button>
+      <div class="stepbar-txt">
+        <output id="st-lbl">Montaggio</output>
+        <span id="st-text">Premi › per vedere il montaggio un passo alla volta.</span>
+      </div>
+      <button id="st-next" aria-label="Passo successivo">›</button>
+    </div>
   </section>
+
+  <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" aria-label="Larghezza pannello laterale" tabindex="0" title="Trascina per cambiare la larghezza · doppio clic per ripristinare"></div>
 
   <aside>
     <div class="block">
@@ -191,12 +225,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
         <input type="range" id="explode" min="0" max="100" step="1" value="0">
       </div>
       <label class="toggle"><input type="checkbox" id="man-on" checked> Figura umana 175 cm</label>
-      <span style="font-size:13px">Montaggio passo-passo</span>
-      <div class="stepper sm">
-        <button id="st-prev" aria-label="Passo precedente">‹</button>
-        <div class="count"><output id="st-lbl" style="font-size:20px">Tutto montato</output></div>
-        <button id="st-next" aria-label="Passo successivo">›</button>
-      </div>
+      <span style="font-size:13px">Montaggio passo-passo (comandi anche sotto la vista 3D)</span>
       <ol class="steps" id="steps"></ol>
       <p class="note">Il pezzo arancione è quello da montare in quel passo. Clicca su un passo per saltarci. Quote nascoste durante esploso e passo-passo.</p>
     </div>
@@ -650,7 +679,8 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
       b.onclick = () => goStep(i + 1);
       li.appendChild(b); list.appendChild(li);
     });
-    $('st-lbl').textContent = st.step ? `Passo ${st.step} di ${steps.length}` : 'Tutto montato';
+    $('st-lbl').textContent = st.step ? `Passo ${st.step} di ${steps.length}` : `Montaggio · ${steps.length} passi`;
+    $('st-text').textContent = st.step ? steps[st.step - 1] : 'Premi › per vedere il montaggio un passo alla volta.';
     $('st-prev').disabled = st.step === 0;
     $('st-next').disabled = st.step >= steps.length;
   }
@@ -748,6 +778,33 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
   $('lv-minus').onclick = () => { st.levels = Math.max(1, st.levels - 1); refresh(false); };
   $('lv-plus').onclick = () => { st.levels = Math.min(6, st.levels + 1); refresh(true); };
   document.querySelectorAll('.views button').forEach(b => b.onclick = () => frame(b.dataset.view, false));
+
+  // --- divisore tra vista e pannello (desktop): trascina, frecce, doppio clic ripristina ---
+  (() => {
+    const sp = $('splitter'), app = document.querySelector('.app'), DEF = 340;
+    const clampW = w => Math.round(Math.min(Math.max(w, 260), Math.min(760, app.clientWidth * 0.6)));
+    const curW = () => parseFloat(getComputedStyle(app).getPropertyValue('--aside-w')) || DEF;
+    const setW = w => {
+      const v = clampW(w);
+      app.style.setProperty('--aside-w', v + 'px');
+      try { localStorage.setItem('aside-w', v); } catch (e) {}
+    };
+    try { const w = +localStorage.getItem('aside-w'); if (w) app.style.setProperty('--aside-w', clampW(w) + 'px'); } catch (e) {}
+    sp.addEventListener('pointerdown', e => {
+      sp.setPointerCapture(e.pointerId); sp.classList.add('drag');
+      const move = ev => setW(app.getBoundingClientRect().right - ev.clientX - 8);
+      const up = () => {
+        sp.classList.remove('drag');
+        sp.removeEventListener('pointermove', move); sp.removeEventListener('pointerup', up); sp.removeEventListener('pointercancel', up);
+      };
+      sp.addEventListener('pointermove', move); sp.addEventListener('pointerup', up); sp.addEventListener('pointercancel', up);
+    });
+    sp.addEventListener('keydown', e => {
+      if (e.key === 'ArrowLeft') { setW(curW() + 20); e.preventDefault(); }
+      if (e.key === 'ArrowRight') { setW(curW() - 20); e.preventDefault(); }
+    });
+    sp.addEventListener('dblclick', () => setW(DEF));
+  })();
 
   applyTheme(); resize();
   setCount(3);
