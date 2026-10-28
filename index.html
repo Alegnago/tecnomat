@@ -141,7 +141,29 @@ h1 { font: 600 20px/1.2 var(--f-body); margin: 0; letter-spacing: -.01em; text-w
 .switch input:disabled { opacity: .4; cursor: default; }
 .switch:has(input:disabled) { color: var(--muted); cursor: default; }
 
-input[type="range"] { width: 140px; accent-color: var(--accent); }
+/* cursore a tacche: parte riempita scura con pallino, resto chiaro */
+.tslider {
+  --h: 36px; position: relative; height: var(--h); margin: 4px 0 6px; border-radius: 999px; background: #f1f2f1;
+  box-shadow: inset 0 0 0 1px var(--rule), 0 8px 18px rgba(0,0,0,.07); overflow: hidden;
+}
+.tslider::before {
+  content: ""; position: absolute; inset: 11px 16px; pointer-events: none;
+  background: repeating-linear-gradient(90deg, #9da3a0 0 2px, transparent 2px 9px);
+}
+.ts-fill {
+  position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--h) + (100% - var(--h)) * var(--p));
+  background: #161a19; border-radius: 999px; pointer-events: none;
+}
+.ts-fill::before {
+  content: ""; position: absolute; top: 11px; bottom: 11px; left: 16px; right: 30px;
+  background: repeating-linear-gradient(90deg, rgba(255,255,255,.5) 0 2px, transparent 2px 9px);
+}
+.ts-fill::after {
+  content: ""; position: absolute; right: 13px; top: 50%; width: 10px; height: 10px; margin-top: -5px;
+  border-radius: 50%; background: #fff;
+}
+.tslider input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.tslider:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
 .readout { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 0; }
 .readout div { background: var(--field); border-radius: 8px; padding: 9px 10px; display: grid; gap: 3px; min-width: 0; }
 .readout dt { font-size: 11px; color: var(--muted); }
@@ -265,7 +287,8 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
       <h2 id="g-view">Vista</h2>
       <label class="switch">Quote <input type="checkbox" id="show-dims" checked></label>
       <label class="switch">Figura umana 175 cm <input type="checkbox" id="man-on" checked></label>
-      <div class="row"><label for="explode">Esploso <small id="ex-val">0 %</small></label><input type="range" id="explode" min="0" max="100" step="1" value="0"></div>
+      <div class="row"><label for="explode">Esploso</label><small id="ex-val">0 %</small></div>
+      <div class="tslider" style="--p:0"><div class="ts-fill"></div><input type="range" id="explode" min="0" max="100" step="1" value="0"></div>
     </section>
 
     <section class="group" aria-labelledby="g-size">
@@ -1133,7 +1156,10 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
   $('st-next').onclick = () => goStep(st.step + 1);
   $('st-exit').onclick = () => goStep(0);
   addEventListener('keydown', e => { if (e.key === 'Escape' && st.step) goStep(0); });
-  $('explode').oninput = e => { st.ex = +e.target.value / 100; $('ex-val').textContent = e.target.value + ' %'; applyStep(); };
+  $('explode').oninput = e => {
+    st.ex = +e.target.value / 100; $('ex-val').textContent = e.target.value + ' %';
+    e.target.parentElement.style.setProperty('--p', st.ex); applyStep();
+  };
   $('man-on').onchange = e => { st.man = man.visible = e.target.checked; refresh(true); };
   $('panels-on').onchange = e => { st.panels = e.target.checked; refresh(false); };
   $('shelf-on').onchange = e => { st.shelfOn = e.target.checked; refresh(true); };
