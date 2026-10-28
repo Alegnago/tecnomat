@@ -36,7 +36,10 @@ body {
   padding-right: max(12px, env(safe-area-inset-right, 0px));
   padding-block: 12px; box-sizing: border-box;
 }
-.app { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 12px var(--aside-w, 340px); }
+.app { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 12px var(--aside-w, 340px); grid-template-rows: minmax(0, 1fr); }
+.view { grid-column: 1; grid-row: 1; }
+.splitter { grid-column: 2; grid-row: 1; }
+aside { grid-column: 3; grid-row: 1; }
 /* divisore trascinabile tra vista e pannello */
 .splitter { position: relative; cursor: col-resize; touch-action: none; user-select: none; }
 .splitter::before {
@@ -70,7 +73,11 @@ body {
 .views button:hover { color: var(--ink); }
 .views button[aria-pressed="true"] { background: var(--ink); color: #fff; }
 .hint { position: absolute; right: 14px; top: 20px; font-size: 11px; color: var(--muted); }
-.stepdock { position: absolute; left: 12px; right: 12px; bottom: 12px; display: grid; justify-items: center; gap: 8px; }
+.stepdock {   /* su desktop sta sopra la vista 3D, in basso; su telefono tra vista e comandi */
+  grid-column: 1; grid-row: 1; align-self: end; margin: 12px; position: relative; z-index: 2;
+  display: grid; justify-items: center; gap: 8px; pointer-events: none;
+}
+.stepdock > * { pointer-events: auto; }
 .stepbar {
   width: 100%; max-width: 640px; box-sizing: border-box;
   /* altezza fissa: la barra non cambia misura passando da un passo all'altro */
@@ -181,7 +188,9 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
 
 @media (max-width: 860px) {
   html, body { height: auto; }
-  .app { grid-template-columns: 1fr; height: auto; gap: 12px; }
+  .app { grid-template-columns: 1fr; grid-template-rows: none; height: auto; gap: 12px; }
+  .view, aside, .stepdock { grid-column: 1; }
+  .view { grid-row: 1; } .stepdock { grid-row: 2; margin: 0; } aside { grid-row: 3; }
   .splitter { display: none; }
   .view { height: 62vh; min-height: 340px; }
   .hint { display: none; }
@@ -201,18 +210,19 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
       <button id="v-top" data-view="top" aria-pressed="false">Pianta</button>
     </div>
     <div class="hint">Trascina per ruotare · rotella per lo zoom</div>
-    <div class="stepdock">
-    <button id="st-exit" class="exit" hidden>Esci dal montaggio</button>
-    <div class="stepbar" role="group" aria-label="Montaggio passo-passo">
-      <button id="st-prev" aria-label="Passo precedente">‹</button>
-      <div class="stepbar-txt">
-        <output id="st-lbl">Montaggio</output>
-        <span id="st-text">Premi › per vedere il montaggio un passo alla volta.</span>
-      </div>
-      <button id="st-next" aria-label="Passo successivo">›</button>
-    </div>
-    </div>
   </section>
+
+    <div class="stepdock">
+  <button id="st-exit" class="exit" hidden>Esci dal montaggio</button>
+  <div class="stepbar" role="group" aria-label="Montaggio passo-passo">
+    <button id="st-prev" aria-label="Passo precedente">‹</button>
+    <div class="stepbar-txt">
+      <output id="st-lbl">Montaggio</output>
+      <span id="st-text">Premi › per vedere il montaggio un passo alla volta.</span>
+    </div>
+    <button id="st-next" aria-label="Passo successivo">›</button>
+  </div>
+  </div>
 
   <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" aria-label="Larghezza pannello laterale" tabindex="0" title="Trascina per cambiare la larghezza · doppio clic per ripristinare"></div>
 
@@ -952,6 +962,7 @@ const CARTELLI = ['S', 'M', 'L', 'XL', 'XXL'].map(t => ({
   // --- passo-passo: mostra i pezzi fino al passo corrente, evidenzia quelli del passo ---
   const hlCache = new Map();
   const hlMat = mat => {
+    if (Array.isArray(mat)) return mat.map(hlMat);           // mesh con un materiale per faccia (cartelli)
     if (!hlCache.has(mat)) { const c = mat.clone(); c.color = new THREE.Color(0xe8701a); c.emissive = new THREE.Color(0xa84400); c.emissiveIntensity = 0.2; hlCache.set(mat, c); }
     return hlCache.get(mat);
   };
